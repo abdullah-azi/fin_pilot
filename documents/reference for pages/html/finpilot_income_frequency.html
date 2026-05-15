@@ -1,0 +1,260 @@
+
+<style>
+  .pw { display:flex; justify-content:center; gap:24px; padding:2rem 0; flex-wrap:wrap; align-items:flex-start; }
+  .phone { width:295px; border-radius:44px; border:1.5px solid #2e2e2e; overflow:hidden; background:#0e0e0e; }
+  .notch { width:88px; height:26px; background:#0e0e0e; border-radius:0 0 16px 16px; margin:0 auto; border:1.5px solid #2e2e2e; border-top:none; }
+  .screen { background:#0e0e0e; padding:0; }
+  .handle { width:36px; height:4px; background:#2e2e2e; border-radius:2px; margin:14px auto 0; }
+  .hdr { display:flex; align-items:center; justify-content:space-between; padding:14px 20px 0; }
+  .htitle { font-size:15px; font-weight:500; color:#f0f0f0; margin:0; }
+  .hclose { width:28px; height:28px; border-radius:50%; background:#1e1e1e; border:0.5px solid #2e2e2e; display:flex; align-items:center; justify-content:center; font-size:14px; color:#666; }
+
+  .type-toggle { display:flex; margin:16px 20px 0; background:#161616; border-radius:12px; border:0.5px solid #272727; padding:3px; gap:3px; }
+  .tb { flex:1; text-align:center; padding:9px 0; border-radius:10px; font-size:12px; font-weight:500; display:flex; align-items:center; justify-content:center; gap:5px; color:#444; }
+  .tb.on { background:#22c55e; color:#fff; }
+
+  .amt-sec { padding:20px 20px 0; text-align:center; }
+  .amt-lbl { font-size:10px; color:#555; letter-spacing:0.05em; margin:0 0 6px; }
+  .amt-num { font-size:34px; font-weight:500; color:#22c55e; margin:0; letter-spacing:-1px; }
+  .cur { display:inline-block; width:2px; height:30px; background:#7C3AED; border-radius:1px; vertical-align:middle; margin-left:2px; animation:blink 1s step-end infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .fp { padding:16px 20px 0; }
+  .fl { font-size:10px; color:#555; letter-spacing:0.04em; margin:0 0 7px; }
+
+  .freq-pills { display:flex; gap:5px; margin-bottom:14px; }
+  .fp-chip { flex:1; text-align:center; padding:8px 0; border-radius:8px; font-size:10px; font-weight:500; background:#161616; border:0.5px solid #272727; color:#555; cursor:pointer; }
+  .fp-chip.sel { background:#1a1525; border-color:#7C3AED; color:#9b72f5; }
+
+  .hr-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+  .field { margin-bottom:12px; }
+  .field-label { font-size:10px; color:#555; letter-spacing:0.04em; margin:0 0 5px; }
+  .fi { background:#161616; border:0.5px solid #2e2e2e; border-radius:10px; padding:10px 12px; font-size:13px; color:#e0e0e0; display:flex; align-items:center; justify-content:space-between; }
+  .fi.focused { border-color:#7C3AED; }
+  .fv { color:#e0e0e0; font-size:13px; }
+  .fic { font-size:14px; color:#555; }
+  .fic.v { color:#7C3AED; }
+
+  .preview { background:#161616; border-radius:11px; border:0.5px solid #272727; padding:11px 13px; margin-bottom:12px; }
+  .pr { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; }
+  .pr:last-child { margin-bottom:0; }
+  .pl { font-size:10px; color:#555; }
+  .pv { font-size:11px; font-weight:500; color:#ddd; }
+  .pv.g { color:#22c55e; }
+  .pv.v { color:#9b72f5; }
+  .pv.a { color:#f59e0b; }
+  .pdiv { height:0.5px; background:#272727; margin:7px 0; }
+
+  .cat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:12px; }
+  .ci { background:#161616; border:0.5px solid #272727; border-radius:10px; padding:8px 4px 6px; display:flex; flex-direction:column; align-items:center; gap:3px; }
+  .ci.sel { border-color:#7C3AED; background:#1a1525; }
+  .ci-ic { font-size:15px; }
+  .ci-nm { font-size:9px; color:#666; text-align:center; }
+  .ci.sel .ci-nm { color:#9b72f5; }
+
+  .hint { background:#0d1a12; border:0.5px solid #1a3d22; border-radius:9px; padding:9px 11px; margin-bottom:12px; display:flex; gap:8px; align-items:flex-start; }
+  .hi { font-size:13px; color:#22c55e; flex-shrink:0; margin-top:1px; }
+  .ht { font-size:10px; color:#4a8c5c; line-height:1.5; margin:0; }
+
+  .note-field { background:#161616; border:0.5px solid #2e2e2e; border-radius:10px; padding:10px 12px; display:flex; align-items:center; gap:8px; margin-bottom:18px; }
+  .note-field span { font-size:13px; color:#3a3a3a; }
+
+  .save-btn { margin:0 20px 28px; background:#22c55e; border-radius:13px; padding:14px 0; text-align:center; font-size:14px; font-weight:500; color:#fff; display:flex; align-items:center; justify-content:center; gap:8px; }
+
+  .slabel { text-align:center; font-size:11px; color:#555; padding:10px 0 4px; }
+
+  .panel { max-width:210px; padding-top:0.5rem; }
+  .ptitle { font-size:13px; font-weight:500; color:var(--color-text-primary); margin:0 0 14px; }
+  .pnote { background:var(--color-background-secondary); border-radius:10px; padding:10px 12px; margin-bottom:10px; }
+  .pnh { font-size:11px; font-weight:500; color:var(--color-text-primary); margin:0 0 3px; }
+  .pnb { font-size:11px; color:var(--color-text-secondary); margin:0; line-height:1.5; }
+  .rec { border:1.5px solid #7C3AED44; border-radius:10px; padding:10px 12px; margin-bottom:10px; background:var(--color-background-secondary); }
+  .rbadge { font-size:9px; background:#1a1525; color:#9b72f5; padding:2px 6px; border-radius:4px; border:0.5px solid #7C3AED55; margin-left:4px; }
+  .sw { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px; }
+</style>
+
+<h2 class="sr-only">FinPilot income frequency selector showing hourly, daily, monthly, yearly and one-time options with live preview</h2>
+
+<div class="pw">
+
+  <!-- SCREEN: Hourly selected -->
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <p class="slabel">Hourly rate view</p>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="handle"></div>
+        <div class="hdr">
+          <p class="htitle">Add income</p>
+          <div class="hclose"><i class="ti ti-x" aria-hidden="true"></i></div>
+        </div>
+        <div class="type-toggle">
+          <div class="tb"><i class="ti ti-arrow-up" aria-hidden="true" style="font-size:12px"></i> Expense</div>
+          <div class="tb on"><i class="ti ti-arrow-down" aria-hidden="true" style="font-size:12px"></i> Income</div>
+        </div>
+        <div class="amt-sec">
+          <p class="amt-lbl">RATE (PKR / HR)</p>
+          <p class="amt-num">2,500<span class="cur"></span></p>
+        </div>
+        <div class="fp">
+          <p class="fl">HOW ARE YOU PAID?</p>
+          <div class="freq-pills">
+            <div class="fp-chip">Once</div>
+            <div class="fp-chip sel">Hourly</div>
+            <div class="fp-chip">Daily</div>
+            <div class="fp-chip">Monthly</div>
+            <div class="fp-chip">Yearly</div>
+          </div>
+          <div class="hr-row">
+            <div class="field" style="margin-bottom:0">
+              <p class="field-label">HRS / DAY</p>
+              <div class="fi focused">
+                <span class="fv">8</span>
+                <i class="ti ti-clock fic v" aria-hidden="true"></i>
+              </div>
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <p class="field-label">DAYS / WEEK</p>
+              <div class="fi">
+                <span class="fv">5</span>
+                <i class="ti ti-calendar fic" aria-hidden="true"></i>
+              </div>
+            </div>
+          </div>
+          <div style="height:10px"></div>
+          <div class="preview">
+            <div class="pr"><span class="pl">Per hour</span><span class="pv g">Rs 2,500</span></div>
+            <div class="pdiv"></div>
+            <div class="pr"><span class="pl">Est. per day (8 hrs)</span><span class="pv">Rs 20,000</span></div>
+            <div class="pr"><span class="pl">Est. per month</span><span class="pv v">Rs 4,33,000</span></div>
+            <div class="pr"><span class="pl">Est. per year</span><span class="pv">Rs 52,00,000</span></div>
+          </div>
+          <div class="hint">
+            <i class="ti ti-robot hi" aria-hidden="true"></i>
+            <p class="ht">FinPilot will use <strong>Rs 4,33,000/month</strong> as your income baseline for spending analysis and savings suggestions.</p>
+          </div>
+          <p class="fl">INCOME SOURCE</p>
+          <div class="cat-grid">
+            <div class="ci"><span class="ci-ic" style="color:#22c55e"><i class="ti ti-briefcase" aria-hidden="true"></i></span><span class="ci-nm">Salary</span></div>
+            <div class="ci sel"><span class="ci-ic" style="color:#22c55e"><i class="ti ti-chart-line" aria-hidden="true"></i></span><span class="ci-nm">Freelance</span></div>
+            <div class="ci"><span class="ci-ic" style="color:#22c55e"><i class="ti ti-building-bank" aria-hidden="true"></i></span><span class="ci-nm">Investment</span></div>
+            <div class="ci"><span class="ci-ic" style="color:#555"><i class="ti ti-dots" aria-hidden="true"></i></span><span class="ci-nm">Other</span></div>
+          </div>
+          <div class="note-field">
+            <i class="ti ti-pencil" aria-hidden="true" style="font-size:14px;color:#444"></i>
+            <span>Add a note (optional)</span>
+          </div>
+        </div>
+        <div class="save-btn"><i class="ti ti-check" aria-hidden="true"></i> Save income</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN: Monthly selected -->
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <p class="slabel">Monthly / other frequencies</p>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="handle"></div>
+        <div class="hdr">
+          <p class="htitle">Add income</p>
+          <div class="hclose"><i class="ti ti-x" aria-hidden="true"></i></div>
+        </div>
+        <div class="type-toggle">
+          <div class="tb"><i class="ti ti-arrow-up" aria-hidden="true" style="font-size:12px"></i> Expense</div>
+          <div class="tb on"><i class="ti ti-arrow-down" aria-hidden="true" style="font-size:12px"></i> Income</div>
+        </div>
+        <div class="amt-sec">
+          <p class="amt-lbl">AMOUNT (PKR / MONTH)</p>
+          <p class="amt-num">1,40,000<span class="cur"></span></p>
+        </div>
+        <div class="fp">
+          <p class="fl">HOW ARE YOU PAID?</p>
+          <div class="freq-pills">
+            <div class="fp-chip">Once</div>
+            <div class="fp-chip">Hourly</div>
+            <div class="fp-chip">Daily</div>
+            <div class="fp-chip sel">Monthly</div>
+            <div class="fp-chip">Yearly</div>
+          </div>
+          <div class="preview">
+            <div class="pr"><span class="pl">Per month</span><span class="pv g">Rs 1,40,000</span></div>
+            <div class="pdiv"></div>
+            <div class="pr"><span class="pl">Per day (approx)</span><span class="pv">Rs 4,667</span></div>
+            <div class="pr"><span class="pl">Per year</span><span class="pv v">Rs 16,80,000</span></div>
+          </div>
+          <p class="fl">INCOME SOURCE</p>
+          <div class="cat-grid">
+            <div class="ci sel"><span class="ci-ic" style="color:#22c55e"><i class="ti ti-briefcase" aria-hidden="true"></i></span><span class="ci-nm">Salary</span></div>
+            <div class="ci"><span class="ci-ic" style="color:#22c55e"><i class="ti ti-chart-line" aria-hidden="true"></i></span><span class="ci-nm">Freelance</span></div>
+            <div class="ci"><span class="ci-ic" style="color:#22c55e"><i class="ti ti-building-bank" aria-hidden="true"></i></span><span class="ci-nm">Investment</span></div>
+            <div class="ci"><span class="ci-ic" style="color:#555"><i class="ti ti-dots" aria-hidden="true"></i></span><span class="ci-nm">Other</span></div>
+          </div>
+          <div class="hr-row">
+            <div class="field" style="margin-bottom:0">
+              <p class="field-label">DATE RECEIVED</p>
+              <div class="fi">
+                <span class="fv">May 1, 2026</span>
+                <i class="ti ti-calendar fic v" aria-hidden="true"></i>
+              </div>
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <p class="field-label">FROM</p>
+              <div class="fi focused">
+                <span class="fv">Employer</span>
+                <i class="ti ti-user fic v" aria-hidden="true"></i>
+              </div>
+            </div>
+          </div>
+          <div style="height:12px"></div>
+          <div class="hint">
+            <i class="ti ti-robot hi" aria-hidden="true"></i>
+            <p class="ht">This recurring income will update your monthly baseline. One-time entries won't affect your baseline.</p>
+          </div>
+          <div class="note-field">
+            <i class="ti ti-pencil" aria-hidden="true" style="font-size:14px;color:#444"></i>
+            <span>Add a note (optional)</span>
+          </div>
+        </div>
+        <div class="save-btn"><i class="ti ti-check" aria-hidden="true"></i> Save income</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL -->
+  <div class="panel">
+    <p class="ptitle">How it works</p>
+
+    <div class="rec">
+      <p class="pnh">5 frequency types <span class="rbadge">all covered</span></p>
+      <p class="pnb">Once, Hourly, Daily, Monthly, Yearly — the pill row adapts the amount label and preview card to match whichever is selected.</p>
+    </div>
+
+    <div class="pnote">
+      <p class="pnh"><span class="sw" style="background:#7C3AED"></span>Hourly needs extra inputs</p>
+      <p class="pnb">Hrs/day and days/week appear only when Hourly is selected. The app multiplies these to estimate a monthly figure for the AI baseline.</p>
+    </div>
+
+    <div class="pnote">
+      <p class="pnh">Preview card builds trust</p>
+      <p class="pnb">Always shows the per-month equivalent — that's what FinPilot's AI uses internally. User sees the math before saving so there's no surprise.</p>
+    </div>
+
+    <div class="pnote">
+      <p class="pnh"><span class="sw" style="background:#22c55e"></span>Once ≠ recurring</p>
+      <p class="pnb">One-time income (bonus, sale, gift) is logged but does not update the monthly baseline the AI uses for spending and savings analysis.</p>
+    </div>
+
+    <div class="pnote">
+      <p class="pnh">Amount label changes</p>
+      <p class="pnb">"RATE (PKR/HR)", "AMOUNT (PKR/DAY)", "AMOUNT (PKR/MONTH)" — the label above the big number updates live so the user always knows what they're entering.</p>
+    </div>
+
+    <div class="pnote">
+      <p class="pnh">Backend: store raw + frequency</p>
+      <p class="pnb">Never store only the computed monthly value. Store the raw amount, frequency, and hrs/day + days/week for hourly — so it can be recalculated if the user edits later.</p>
+    </div>
+  </div>
+
+</div>

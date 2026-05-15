@@ -1,0 +1,299 @@
+
+<style>
+  .pw { display:flex; justify-content:center; gap:26px; padding:2rem 0; flex-wrap:wrap; align-items:flex-start; }
+  .phone { width:295px; border-radius:44px; border:1.5px solid #2e2e2e; overflow:hidden; background:#0e0e0e; }
+  .notch { width:88px; height:26px; background:#0e0e0e; border-radius:0 0 16px 16px; margin:0 auto; border:1.5px solid #2e2e2e; border-top:none; }
+  .screen { background:#0e0e0e; padding:0; }
+
+  .chat-hdr { display:flex; align-items:center; gap:10px; padding:14px 18px 12px; border-bottom:0.5px solid #1e1e1e; }
+  .ai-avatar { width:34px; height:34px; border-radius:50%; background:#7C3AED; display:flex; align-items:center; justify-content:center; font-size:16px; color:#fff; flex-shrink:0; }
+  .ai-meta { flex:1; }
+  .ai-name { font-size:13px; font-weight:500; color:#f0f0f0; margin:0 0 1px; }
+  .ai-status { font-size:10px; color:#22c55e; margin:0; display:flex; align-items:center; gap:4px; }
+  .status-dot { width:6px; height:6px; border-radius:50%; background:#22c55e; }
+  .hdr-icon { font-size:18px; color:#555; }
+
+  .chat-body { padding:14px 14px 10px; min-height:340px; display:flex; flex-direction:column; gap:10px; }
+
+  .msg-row { display:flex; gap:8px; align-items:flex-end; }
+  .msg-row.user { flex-direction:row-reverse; }
+
+  .bubble-avatar { width:24px; height:24px; border-radius:50%; background:#7C3AED; display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; flex-shrink:0; }
+  .user-bubble-avatar { width:24px; height:24px; border-radius:50%; background:#272727; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:500; color:#aaa; flex-shrink:0; }
+
+  .bubble { max-width:210px; border-radius:14px; padding:9px 12px; font-size:11px; line-height:1.55; }
+  .bubble.ai { background:#1a1525; border:0.5px solid #3d2f6a; color:#c4b5fd; border-bottom-left-radius:4px; }
+  .bubble.user { background:#272727; border:0.5px solid #333; color:#e0e0e0; border-bottom-right-radius:4px; }
+  .bubble strong { color:#f0f0f0; font-weight:500; }
+
+  .insight-bubble { background:#1a1525; border:0.5px solid #3d2f6a; border-radius:14px; border-bottom-left-radius:4px; padding:10px 12px; max-width:230px; }
+  .insight-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .insight-label { font-size:10px; color:#9b72f5; }
+  .insight-val { font-size:11px; font-weight:500; }
+  .insight-divider { height:0.5px; background:#3d2f6a; margin:7px 0; }
+  .verdict { display:flex; align-items:center; gap:6px; margin-top:8px; background:#0d1a12; border:0.5px solid #1a3d22; border-radius:8px; padding:7px 9px; }
+  .verdict-icon { font-size:14px; color:#22c55e; }
+  .verdict-text { font-size:10px; color:#4a8c5c; line-height:1.4; }
+  .verdict-text strong { color:#22c55e; font-weight:500; }
+
+  .warn-verdict { display:flex; align-items:center; gap:6px; margin-top:8px; background:#1f1a0e; border:0.5px solid #3d2f0d; border-radius:8px; padding:7px 9px; }
+  .warn-icon { font-size:14px; color:#f59e0b; }
+  .warn-text { font-size:10px; color:#7a5c1e; line-height:1.4; }
+  .warn-text strong { color:#f59e0b; font-weight:500; }
+
+  .typing-bubble { background:#1a1525; border:0.5px solid #3d2f6a; border-radius:14px; border-bottom-left-radius:4px; padding:10px 14px; display:flex; gap:5px; align-items:center; }
+  .typing-dot { width:6px; height:6px; border-radius:50%; background:#7C3AED; opacity:0.4; animation:td 1.2s ease-in-out infinite; }
+  .typing-dot:nth-child(2) { animation-delay:0.2s; }
+  .typing-dot:nth-child(3) { animation-delay:0.4s; }
+  @keyframes td { 0%,80%,100%{opacity:0.3;transform:scale(0.9)} 40%{opacity:1;transform:scale(1.1)} }
+
+  .timestamp { font-size:9px; color:#444; text-align:center; margin:2px 0; }
+
+  .quick-prompts { padding:0 14px 10px; }
+  .qp-label { font-size:10px; color:#555; margin:0 0 7px; letter-spacing:0.03em; }
+  .qp-scroll { display:flex; flex-direction:column; gap:6px; }
+  .qp-chip { background:#161616; border:0.5px solid #272727; border-radius:10px; padding:9px 11px; font-size:11px; color:#bbb; display:flex; align-items:center; gap:7px; }
+  .qp-icon { font-size:14px; flex-shrink:0; }
+
+  .input-row { display:flex; align-items:center; gap:8px; padding:10px 14px 20px; border-top:0.5px solid #1e1e1e; }
+  .chat-input { flex:1; background:#161616; border:0.5px solid #2e2e2e; border-radius:22px; padding:9px 14px; font-size:12px; color:#e0e0e0; display:flex; align-items:center; }
+  .chat-placeholder { color:#3a3a3a; font-size:12px; }
+  .send-btn { width:32px; height:32px; border-radius:50%; background:#7C3AED; display:flex; align-items:center; justify-content:center; font-size:15px; color:#fff; flex-shrink:0; }
+  .mic-btn { width:32px; height:32px; border-radius:50%; background:#1e1e1e; border:0.5px solid #2e2e2e; display:flex; align-items:center; justify-content:center; font-size:15px; color:#666; flex-shrink:0; }
+
+  .nb { display:flex; background:#161616; border-top:0.5px solid #272727; padding:8px 0 12px; }
+  .ni { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .ni-ic { font-size:19px; color:#444; }
+  .ni.active .ni-ic { color:#7C3AED; }
+  .ni-lb { font-size:8px; color:#444; }
+  .ni.active .ni-lb { color:#9b72f5; font-weight:500; }
+  .nd { width:3px; height:3px; border-radius:50%; background:#7C3AED; margin:0 auto; }
+
+  .slabel { text-align:center; font-size:11px; color:#555; padding:10px 0 4px; }
+
+  .panel { max-width:210px; padding-top:0.5rem; }
+  .ptitle { font-size:13px; font-weight:500; color:var(--color-text-primary); margin:0 0 14px; }
+  .pnote { background:var(--color-background-secondary); border-radius:10px; padding:10px 12px; margin-bottom:10px; }
+  .pnh { font-size:11px; font-weight:500; color:var(--color-text-primary); margin:0 0 3px; }
+  .pnb { font-size:11px; color:var(--color-text-secondary); margin:0; line-height:1.5; }
+  .sw { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px; }
+</style>
+
+<h2 class="sr-only">FinPilot AI assistant screen mockup showing two states: empty state with quick prompts, and an active conversation with purchase feasibility analysis</h2>
+
+<div class="pw">
+
+  <!-- Screen 1: Empty / quick prompts state -->
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <p class="slabel">Empty state — quick prompts</p>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="chat-hdr">
+          <div class="ai-avatar"><i class="ti ti-robot" aria-hidden="true"></i></div>
+          <div class="ai-meta">
+            <p class="ai-name">FinPilot AI</p>
+            <p class="ai-status"><span class="status-dot"></span> Ready to help</p>
+          </div>
+          <i class="ti ti-dots-vertical hdr-icon" aria-hidden="true"></i>
+        </div>
+
+        <div class="chat-body" style="min-height:280px; justify-content:flex-end;">
+          <div style="text-align:center; padding:20px 10px 10px;">
+            <div style="width:48px;height:48px;border-radius:50%;background:#1a1525;border:0.5px solid #3d2f6a;display:flex;align-items:center;justify-content:center;font-size:24px;color:#7C3AED;margin:0 auto 10px;"><i class="ti ti-robot" aria-hidden="true"></i></div>
+            <p style="font-size:13px;font-weight:500;color:#f0f0f0;margin:0 0 4px;">Ask me anything</p>
+            <p style="font-size:11px;color:#555;margin:0;line-height:1.5;">I know your income, spending, and<br>habits — ask me anything.</p>
+          </div>
+        </div>
+
+        <div class="quick-prompts">
+          <p class="qp-label">SUGGESTED QUESTIONS</p>
+          <div class="qp-scroll">
+            <div class="qp-chip">
+              <i class="ti ti-shopping-cart qp-icon" aria-hidden="true" style="color:#f59e0b"></i>
+              Can I afford a Rs 15,000 purchase right now?
+            </div>
+            <div class="qp-chip">
+              <i class="ti ti-chart-pie qp-icon" aria-hidden="true" style="color:#7C3AED"></i>
+              What am I spending the most on?
+            </div>
+            <div class="qp-chip">
+              <i class="ti ti-piggy-bank qp-icon" aria-hidden="true" style="color:#22c55e"></i>
+              How much should I save this month?
+            </div>
+            <div class="qp-chip">
+              <i class="ti ti-trending-down qp-icon" aria-hidden="true" style="color:#ef4444"></i>
+              Where am I wasting money?
+            </div>
+          </div>
+        </div>
+
+        <div class="input-row">
+          <div class="mic-btn"><i class="ti ti-microphone" aria-hidden="true"></i></div>
+          <div class="chat-input"><span class="chat-placeholder">Ask FinPilot...</span></div>
+          <div class="send-btn"><i class="ti ti-arrow-up" aria-hidden="true"></i></div>
+        </div>
+
+        <div class="nb">
+          <div class="ni"><i class="ti ti-home ni-ic" aria-hidden="true"></i><span class="ni-lb">Home</span></div>
+          <div class="ni"><i class="ti ti-list ni-ic" aria-hidden="true"></i><span class="ni-lb">Transactions</span></div>
+          <div class="ni active"><i class="ti ti-robot ni-ic" aria-hidden="true"></i><span class="ni-lb">Ask AI</span><div class="nd"></div></div>
+          <div class="ni"><i class="ti ti-chart-pie ni-ic" aria-hidden="true"></i><span class="ni-lb">Insights</span></div>
+          <div class="ni"><i class="ti ti-user ni-ic" aria-hidden="true"></i><span class="ni-lb">Profile</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: Active conversation — feasibility check -->
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <p class="slabel">Active — feasibility check</p>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="chat-hdr">
+          <div class="ai-avatar"><i class="ti ti-robot" aria-hidden="true"></i></div>
+          <div class="ai-meta">
+            <p class="ai-name">FinPilot AI</p>
+            <p class="ai-status"><span class="status-dot"></span> Ready to help</p>
+          </div>
+          <i class="ti ti-dots-vertical hdr-icon" aria-hidden="true"></i>
+        </div>
+
+        <div class="chat-body" style="min-height:400px;">
+          <p class="timestamp">Today, 3:42 PM</p>
+
+          <div class="msg-row user">
+            <div class="user-bubble-avatar">AK</div>
+            <div class="bubble user">Can I afford to buy a new phone for Rs 65,000 right now?</div>
+          </div>
+
+          <div class="msg-row">
+            <div class="bubble-avatar"><i class="ti ti-robot" aria-hidden="true" style="font-size:11px"></i></div>
+            <div>
+              <div class="insight-bubble">
+                <p style="font-size:10px;color:#9b72f5;margin:0 0 7px;font-weight:500;">YOUR FINANCIAL SNAPSHOT</p>
+                <div class="insight-row">
+                  <span class="insight-label">Balance right now</span>
+                  <span class="insight-val" style="color:#22c55e">Rs 84,320</span>
+                </div>
+                <div class="insight-row">
+                  <span class="insight-label">Spent this month</span>
+                  <span class="insight-val" style="color:#f59e0b">Rs 55,680</span>
+                </div>
+                <div class="insight-row">
+                  <span class="insight-label">Savings goal progress</span>
+                  <span class="insight-val" style="color:#bbb">42% complete</span>
+                </div>
+                <div class="insight-row">
+                  <span class="insight-label">After this purchase</span>
+                  <span class="insight-val" style="color:#ef4444">Rs 19,320</span>
+                </div>
+                <div class="insight-divider"></div>
+                <div class="verdict">
+                  <i class="ti ti-alert-circle verdict-icon" aria-hidden="true" style="color:#f59e0b"></i>
+                  <p class="verdict-text" style="color:#7a5c1e;"><strong style="color:#f59e0b">Possible, but tight.</strong> You can technically afford it, but it would leave you with only Rs 19k — below your usual monthly buffer.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="msg-row">
+            <div class="bubble-avatar"><i class="ti ti-robot" aria-hidden="true" style="font-size:11px"></i></div>
+            <div class="bubble ai">
+              I'd suggest waiting <strong>2–3 weeks</strong> until your next salary lands. That way you'd still hit your emergency fund target this month too. Want me to set a reminder?
+            </div>
+          </div>
+
+          <div class="msg-row user">
+            <div class="user-bubble-avatar">AK</div>
+            <div class="bubble user">What if I get it on installments?</div>
+          </div>
+
+          <div class="msg-row">
+            <div class="bubble-avatar"><i class="ti ti-robot" aria-hidden="true" style="font-size:11px"></i></div>
+            <div>
+              <div class="insight-bubble">
+                <p style="font-size:10px;color:#9b72f5;margin:0 0 7px;font-weight:500;">INSTALLMENT IMPACT (12 months)</p>
+                <div class="insight-row">
+                  <span class="insight-label">Monthly payment</span>
+                  <span class="insight-val" style="color:#bbb">~Rs 5,800 / mo</span>
+                </div>
+                <div class="insight-row">
+                  <span class="insight-label">% of your income</span>
+                  <span class="insight-val" style="color:#22c55e">4.1% — manageable</span>
+                </div>
+                <div class="insight-divider"></div>
+                <div class="verdict">
+                  <i class="ti ti-circle-check verdict-icon" aria-hidden="true"></i>
+                  <p class="verdict-text"><strong>Good option.</strong> Rs 5,800/month fits comfortably within your budget without touching your savings goal.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="msg-row">
+            <div class="bubble-avatar"><i class="ti ti-robot" aria-hidden="true" style="font-size:11px"></i></div>
+            <div class="bubble ai">Installments look like the smarter move here. Want me to log a recurring Rs 5,800 expense for the next 12 months so it shows up in your budget?</div>
+          </div>
+
+          <div class="typing-bubble" style="margin-left:32px;">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+        </div>
+
+        <div class="input-row">
+          <div class="mic-btn"><i class="ti ti-microphone" aria-hidden="true"></i></div>
+          <div class="chat-input"><span class="chat-placeholder">Reply to FinPilot...</span></div>
+          <div class="send-btn"><i class="ti ti-arrow-up" aria-hidden="true"></i></div>
+        </div>
+
+        <div class="nb">
+          <div class="ni"><i class="ti ti-home ni-ic" aria-hidden="true"></i><span class="ni-lb">Home</span></div>
+          <div class="ni"><i class="ti ti-list ni-ic" aria-hidden="true"></i><span class="ni-lb">Transactions</span></div>
+          <div class="ni active"><i class="ti ti-robot ni-ic" aria-hidden="true"></i><span class="ni-lb">Ask AI</span><div class="nd"></div></div>
+          <div class="ni"><i class="ti ti-chart-pie ni-ic" aria-hidden="true"></i><span class="ni-lb">Insights</span></div>
+          <div class="ni"><i class="ti ti-user ni-ic" aria-hidden="true"></i><span class="ni-lb">Profile</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel -->
+  <div class="panel">
+    <p class="ptitle">Design decisions</p>
+
+    <div class="pnote">
+      <p class="pnh">Empty state isn't empty</p>
+      <p class="pnb">Four suggested questions based on the most common things users ask. Reduces the blank page anxiety of "what do I even ask?"</p>
+    </div>
+
+    <div class="pnote">
+      <p class="pnh"><span class="sw" style="background:#7C3AED"></span>Violet = AI identity</p>
+      <p class="pnb">AI avatar, bubbles, and typing indicator are all violet — the same signal used across the app. Users always know which messages came from the AI.</p>
+    </div>
+
+    <div class="pnote">
+      <p class="pnh">Snapshot card, not just text</p>
+      <p class="pnb">The AI responds with a structured data card first, then a plain-language verdict below. Data builds trust; language makes it feel personal.</p>
+    </div>
+
+    <div class="pnote">
+      <p class="pnh"><span class="sw" style="background:#f59e0b"></span>Amber = caution verdict</p>
+      <p class="pnb">"Possible but tight" uses amber — not red (which would be wrong) and not green. The color matches the nuance of the answer.</p>
+    </div>
+
+    <div class="pnote">
+      <p class="pnh">AI offers to take action</p>
+      <p class="pnb">"Want me to log a recurring Rs 5,800 expense?" — the AI doesn't just advise, it offers to act. This is the biggest differentiator from a static budgeting app.</p>
+    </div>
+
+    <div class="pnote">
+      <p class="pnh">Conversation builds context</p>
+      <p class="pnb">The follow-up "what if installments?" shows the AI carries context from the previous message — it doesn't re-explain the snapshot, it builds on it.</p>
+    </div>
+  </div>
+
+</div>

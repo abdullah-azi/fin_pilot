@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: finpilot-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: finpilot
+      POSTGRES_USER: finpilot
+      POSTGRES_PASSWORD: finpilot
+    ports:
+      - "5433:5432"
+    volumes:
+      - finpilot_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finpilot -d finpilot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  finpilot_postgres_data:

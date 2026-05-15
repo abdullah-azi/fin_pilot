@@ -1,0 +1,74 @@
+<svg width="720" height="220" viewBox="0 0 720 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="finpilot_mark_bg" x1="32" y1="24" x2="164" y2="188" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9F67FF"/>
+      <stop offset="0.5" stop-color="#7C3AED"/>
+      <stop offset="1" stop-color="#5A23C8"/>
+    </linearGradient>
+    <linearGradient id="finpilot_mark_glow" x1="56" y1="52" x2="140" y2="152" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#C6A8FF" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="24" y="20" width="152" height="180" rx="40" fill="url(#finpilot_mark_bg)"/>
+  <rect x="24" y="20" width="152" height="180" rx="40" fill="url(#finpilot_mark_glow)"/>
+
+  <path
+    d="M64 140C76 124.8 89.333 116.667 104 115.6C118.667 114.533 131.333 103.667 142 83"
+    stroke="#F6FFFE"
+    stroke-width="12"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M127.5 83H142V97.5"
+    stroke="#F6FFFE"
+    stroke-width="12"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <circle cx="100" cy="110" r="39" stroke="#F6FFFE" stroke-opacity="0.34" stroke-width="8"/>
+  <path
+    d="M100 73L111.5 106.5L100 118.5L88.5 106.5L100 73Z"
+    fill="#F6FFFE"
+    fill-opacity="0.92"
+  />
+  <circle cx="100" cy="110" r="8" fill="#16161A" stroke="#F6FFFE" stroke-width="5"/>
+
+  <text
+    x="220"
+    y="103"
+    fill="#FFFFFF"
+    font-family="Inter, Segoe UI, Arial, sans-serif"
+    font-size="66"
+    font-weight="700"
+    letter-spacing="-1.8"
+  >
+    Fin
+  </text>
+  <text
+    x="318"
+    y="103"
+    fill="#7C3AED"
+    font-family="Inter, Segoe UI, Arial, sans-serif"
+    font-size="66"
+    font-weight="700"
+    letter-spacing="-1.8"
+  >
+    Pilot
+  </text>
+
+  <text
+    x="224"
+    y="148"
+    fill="#505463"
+    font-family="Inter, Segoe UI, Arial, sans-serif"
+    font-size="22"
+    font-weight="500"
+    letter-spacing="1.8"
+  >
+    AI FINANCE ASSISTANT
+  </text>
+</svg>

@@ -1,0 +1,213 @@
+
+<style>
+  .pw { display: flex; justify-content: center; padding: 2rem 0; }
+  .phone { width: 300px; border-radius: 44px; border: 1.5px solid #2e2e2e; overflow: hidden; position: relative; background: #0e0e0e; }
+  .notch { width: 90px; height: 26px; background: #0e0e0e; border-radius: 0 0 16px 16px; margin: 0 auto; border: 1.5px solid #2e2e2e; border-top: none; }
+  .screen { background: #0e0e0e; padding: 0 0 76px; }
+
+  .hero { background: #161616; border-bottom: 0.5px solid #272727; padding: 18px 18px 22px; }
+  .hero-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+  .greeting { font-size: 11px; color: #555; margin: 0; }
+  .uname { font-size: 15px; color: #f0f0f0; font-weight: 500; margin: 0; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: #222; border: 0.5px solid #383838; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; color: #777; }
+  .bal-label { font-size: 10px; color: #555; margin: 0 0 3px; letter-spacing: 0.04em; }
+  .bal { font-size: 30px; font-weight: 500; color: #fff; margin: 0 0 16px; letter-spacing: -0.5px; }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat { background: #1e1e1e; border-radius: 10px; border: 0.5px solid #2a2a2a; padding: 8px 10px; }
+  .stat-label { font-size: 10px; color: #555; margin: 0 0 2px; display: flex; align-items: center; gap: 4px; }
+  .stat-val { font-size: 13px; font-weight: 500; margin: 0; }
+
+  .bp { padding: 14px 14px 0; }
+
+  .ai-card { background: #7C3AED; border-radius: 13px; padding: 12px 14px; margin-bottom: 13px; display: flex; align-items: center; gap: 10px; }
+  .ai-icon { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 15px; color: #fff; flex-shrink: 0; }
+  .ai-t { font-size: 12px; font-weight: 500; color: #fff; margin: 0 0 1px; }
+  .ai-s { font-size: 10px; color: rgba(255,255,255,0.6); margin: 0; }
+  .ai-arr { font-size: 14px; color: rgba(255,255,255,0.5); margin-left: auto; }
+
+  .sh { display: flex; justify-content: space-between; align-items: center; margin: 0 0 9px; }
+  .st { font-size: 12px; font-weight: 500; color: #bbb; margin: 0; }
+  .sl { font-size: 10px; color: #555; }
+
+  .sg { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 13px; }
+  .sc { background: #161616; border-radius: 11px; border: 0.5px solid #272727; padding: 10px 11px; }
+  .sc-icon { font-size: 15px; margin-bottom: 5px; }
+  .sc-cat { font-size: 9px; color: #555; margin: 0 0 2px; }
+  .sc-amt { font-size: 13px; font-weight: 500; color: #e8e8e8; margin: 0 0 7px; }
+  .bar-bg { height: 3px; background: #272727; border-radius: 2px; }
+  .bar-f { height: 3px; border-radius: 2px; }
+
+  .ins { background: #1a1625; border-radius: 11px; border: 0.5px solid #3d2f6a; padding: 11px 13px; margin-bottom: 13px; display: flex; gap: 9px; align-items: flex-start; }
+  .ins-icon { font-size: 16px; color: #7C3AED; flex-shrink: 0; margin-top: 1px; }
+  .ins-text { font-size: 10px; color: #9b8cc4; line-height: 1.55; margin: 0; }
+  .ins-bold { font-weight: 500; color: #c4b5fd; }
+
+  .tl { background: #161616; border-radius: 12px; border: 0.5px solid #272727; overflow: hidden; margin-bottom: 13px; }
+  .tr { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border-bottom: 0.5px solid #1e1e1e; }
+  .tr:last-child { border-bottom: none; }
+  .ti { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+  .tn { font-size: 11px; font-weight: 500; color: #ddd; margin: 0 0 1px; }
+  .tc { font-size: 9px; color: #555; margin: 0; }
+  .ta { font-size: 12px; font-weight: 500; }
+
+  .nb { position: absolute; bottom: 0; left: 0; right: 0; background: #161616; border-top: 0.5px solid #272727; display: flex; padding: 8px 0 12px; }
+  .ni { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .ni-ic { font-size: 19px; color: #444; }
+  .ni.active .ni-ic { color: #7C3AED; }
+  .ni-lb { font-size: 8px; color: #444; }
+  .ni.active .ni-lb { color: #9b72f5; font-weight: 500; }
+  .nd { width: 3px; height: 3px; border-radius: 50%; background: #7C3AED; margin: 0 auto; }
+
+  .savings-bar { background: #161616; border-radius: 11px; border: 0.5px solid #272727; padding: 10px 12px; margin-bottom: 13px; }
+  .sav-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .sav-label { font-size: 11px; font-weight: 500; color: #ccc; margin: 0; }
+  .sav-pct { font-size: 11px; font-weight: 500; color: #22c55e; margin: 0; }
+  .sav-bar-bg { height: 5px; background: #272727; border-radius: 3px; margin-bottom: 5px; }
+  .sav-bar-fill { height: 5px; border-radius: 3px; background: #22c55e; width: 42%; }
+  .sav-sub { font-size: 9px; color: #555; margin: 0; }
+</style>
+
+<h2 class="sr-only">FinPilot home screen in dark obsidian with violet, amber, green, and red semantic accents</h2>
+
+<div class="pw">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen">
+
+      <div class="hero">
+        <div class="hero-top">
+          <div>
+            <p class="greeting">Good morning,</p>
+            <p class="uname">Ahmed</p>
+          </div>
+          <div class="avatar">AK</div>
+        </div>
+        <p class="bal-label">Net balance · May 2026</p>
+        <p class="bal">Rs 84,320</p>
+        <div class="stat-grid">
+          <div class="stat">
+            <p class="stat-label"><i class="ti ti-arrow-down" aria-hidden="true" style="font-size:9px;color:#22c55e"></i> Income</p>
+            <p class="stat-val" style="color:#22c55e">Rs 1,40,000</p>
+          </div>
+          <div class="stat">
+            <p class="stat-label"><i class="ti ti-arrow-up" aria-hidden="true" style="font-size:9px;color:#f59e0b"></i> Spent</p>
+            <p class="stat-val" style="color:#f59e0b">Rs 55,680</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bp">
+
+        <div class="ai-card">
+          <div class="ai-icon"><i class="ti ti-robot" aria-hidden="true"></i></div>
+          <div>
+            <p class="ai-t">Ask FinPilot</p>
+            <p class="ai-s">Can I afford this right now?</p>
+          </div>
+          <i class="ti ti-chevron-right ai-arr" aria-hidden="true"></i>
+        </div>
+
+        <div class="sh">
+          <p class="st">Spending this month</p>
+          <span class="sl">See all</span>
+        </div>
+        <div class="sg">
+          <div class="sc">
+            <div class="sc-icon" style="color:#f59e0b"><i class="ti ti-shopping-cart" aria-hidden="true"></i></div>
+            <p class="sc-cat">Food & groceries</p>
+            <p class="sc-amt">Rs 18,400</p>
+            <div class="bar-bg"><div class="bar-f" style="width:72%;background:#f59e0b"></div></div>
+          </div>
+          <div class="sc">
+            <div class="sc-icon" style="color:#6366f1"><i class="ti ti-car" aria-hidden="true"></i></div>
+            <p class="sc-cat">Transport</p>
+            <p class="sc-amt">Rs 9,200</p>
+            <div class="bar-bg"><div class="bar-f" style="width:36%;background:#6366f1"></div></div>
+          </div>
+          <div class="sc">
+            <div class="sc-icon" style="color:#7C3AED"><i class="ti ti-device-tv" aria-hidden="true"></i></div>
+            <p class="sc-cat">Subscriptions</p>
+            <p class="sc-amt">Rs 4,800</p>
+            <div class="bar-bg"><div class="bar-f" style="width:19%;background:#7C3AED"></div></div>
+          </div>
+          <div class="sc">
+            <div class="sc-icon" style="color:#ef4444"><i class="ti ti-heart" aria-hidden="true"></i></div>
+            <p class="sc-cat">Health</p>
+            <p class="sc-amt">Rs 6,100</p>
+            <div class="bar-bg"><div class="bar-f" style="width:24%;background:#ef4444"></div></div>
+          </div>
+        </div>
+
+        <div class="savings-bar">
+          <div class="sav-top">
+            <p class="sav-label"><i class="ti ti-piggy-bank" aria-hidden="true" style="font-size:12px;margin-right:4px;color:#22c55e"></i>Savings goal · Emergency fund</p>
+            <p class="sav-pct">42%</p>
+          </div>
+          <div class="sav-bar-bg"><div class="sav-bar-fill"></div></div>
+          <p class="sav-sub">Rs 42,000 saved of Rs 1,00,000 target</p>
+        </div>
+
+        <div class="ins">
+          <i class="ti ti-bulb ins-icon" aria-hidden="true"></i>
+          <p class="ins-text"><span class="ins-bold">Food spending is up 28% vs last month.</span> Cutting 3 takeout orders this week could save you Rs 2,400.</p>
+        </div>
+
+        <div class="sh">
+          <p class="st">Recent transactions</p>
+          <span class="sl">See all</span>
+        </div>
+        <div class="tl">
+          <div class="tr">
+            <div class="ti" style="background:#1f1a0e"><i class="ti ti-building-store" aria-hidden="true" style="color:#f59e0b"></i></div>
+            <div style="flex:1">
+              <p class="tn">Carrefour</p>
+              <p class="tc">Groceries · Today</p>
+            </div>
+            <span class="ta" style="color:#ef4444">−Rs 3,240</span>
+          </div>
+          <div class="tr">
+            <div class="ti" style="background:#13131f"><i class="ti ti-car" aria-hidden="true" style="color:#6366f1"></i></div>
+            <div style="flex:1">
+              <p class="tn">Uber</p>
+              <p class="tc">Transport · Yesterday</p>
+            </div>
+            <span class="ta" style="color:#ef4444">−Rs 850</span>
+          </div>
+          <div class="tr">
+            <div class="ti" style="background:#0d1a12"><i class="ti ti-wallet" aria-hidden="true" style="color:#22c55e"></i></div>
+            <div style="flex:1">
+              <p class="tn">Salary</p>
+              <p class="tc">Income · May 1</p>
+            </div>
+            <span class="ta" style="color:#22c55e">+Rs 1,40,000</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="nb">
+      <div class="ni active">
+        <i class="ti ti-home ni-ic" aria-hidden="true"></i>
+        <span class="ni-lb">Home</span>
+        <div class="nd"></div>
+      </div>
+      <div class="ni">
+        <i class="ti ti-list ni-ic" aria-hidden="true"></i>
+        <span class="ni-lb">Transactions</span>
+      </div>
+      <div class="ni">
+        <i class="ti ti-robot ni-ic" aria-hidden="true"></i>
+        <span class="ni-lb">Ask AI</span>
+      </div>
+      <div class="ni">
+        <i class="ti ti-chart-pie ni-ic" aria-hidden="true"></i>
+        <span class="ni-lb">Insights</span>
+      </div>
+      <div class="ni">
+        <i class="ti ti-user ni-ic" aria-hidden="true"></i>
+        <span class="ni-lb">Profile</span>
+      </div>
+    </div>
+  </div>
+</div>

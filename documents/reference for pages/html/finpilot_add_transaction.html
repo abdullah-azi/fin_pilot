@@ -1,0 +1,275 @@
+
+<style>
+  .pw { display: flex; justify-content: center; gap: 28px; padding: 2rem 0; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 300px; border-radius: 44px; border: 1.5px solid #2e2e2e; overflow: hidden; position: relative; background: #0e0e0e; }
+  .notch { width: 90px; height: 26px; background: #0e0e0e; border-radius: 0 0 16px 16px; margin: 0 auto; border: 1.5px solid #2e2e2e; border-top: none; }
+  .screen { background: #0e0e0e; padding: 0; }
+
+  .sheet-handle { width: 36px; height: 4px; background: #2e2e2e; border-radius: 2px; margin: 14px auto 0; }
+
+  .sheet-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px 0; }
+  .sheet-title { font-size: 15px; font-weight: 500; color: #f0f0f0; margin: 0; }
+  .sheet-close { width: 28px; height: 28px; border-radius: 50%; background: #1e1e1e; border: 0.5px solid #2e2e2e; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #666; }
+
+  .type-toggle { display: flex; margin: 18px 20px 0; background: #161616; border-radius: 12px; border: 0.5px solid #272727; padding: 3px; gap: 3px; }
+  .type-btn { flex: 1; text-align: center; padding: 9px 0; border-radius: 10px; font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+  .type-btn.expense { background: #ef4444; color: #fff; }
+  .type-btn.income-off { color: #444; }
+  .type-btn.income-on { background: #22c55e; color: #fff; }
+  .type-btn.expense-off { color: #444; }
+
+  .amount-section { padding: 24px 20px 0; text-align: center; }
+  .amount-label { font-size: 10px; color: #555; letter-spacing: 0.05em; margin: 0 0 8px; }
+  .amount-display { font-size: 38px; font-weight: 500; color: #fff; margin: 0 0 4px; letter-spacing: -1px; }
+  .amount-display.expense-color { color: #ef4444; }
+  .amount-display.income-color { color: #22c55e; }
+  .amount-cursor { display: inline-block; width: 2px; height: 36px; background: #7C3AED; border-radius: 1px; vertical-align: middle; margin-left: 2px; animation: blink 1s step-end infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .form-section { padding: 20px 20px 0; }
+
+  .field { margin-bottom: 12px; }
+  .field-label { font-size: 10px; color: #555; letter-spacing: 0.04em; margin: 0 0 5px; }
+  .field-input { background: #161616; border: 0.5px solid #2e2e2e; border-radius: 10px; padding: 10px 12px; font-size: 13px; color: #e0e0e0; display: flex; align-items: center; justify-content: space-between; }
+  .field-input.focused { border-color: #7C3AED; }
+  .field-placeholder { color: #3a3a3a; font-size: 13px; }
+  .field-value { color: #e0e0e0; font-size: 13px; }
+  .field-icon { font-size: 14px; color: #555; }
+  .field-icon.violet { color: #7C3AED; }
+
+  .cat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-bottom: 12px; }
+  .cat-item { background: #161616; border: 0.5px solid #272727; border-radius: 10px; padding: 8px 4px 7px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+  .cat-item.selected { border-color: #7C3AED; background: #1a1525; }
+  .cat-icon { font-size: 16px; }
+  .cat-name { font-size: 9px; color: #666; text-align: center; }
+  .cat-item.selected .cat-name { color: #9b72f5; }
+
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+
+  .note-field { background: #161616; border: 0.5px solid #2e2e2e; border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+  .note-field span { font-size: 13px; color: #3a3a3a; }
+  .note-field i { font-size: 14px; color: #444; }
+
+  .submit-btn { margin: 0 20px 28px; background: #7C3AED; border-radius: 13px; padding: 14px 0; text-align: center; font-size: 14px; font-weight: 500; color: #fff; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .submit-btn.income-btn { background: #22c55e; }
+  .submit-btn i { font-size: 16px; }
+
+  .panel { max-width: 220px; }
+  .panel-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 14px; }
+  .note { background: var(--color-background-secondary); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+  .note-head { font-size: 11px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 3px; display: flex; align-items: center; gap: 5px; }
+  .note-body { font-size: 11px; color: var(--color-text-secondary); margin: 0; line-height: 1.5; }
+  .swatch-sm { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+</style>
+
+<h2 class="sr-only">FinPilot add transaction screen mockup showing expense and income entry states with category picker and amount input</h2>
+
+<div class="pw">
+
+  <div style="display:flex; flex-direction:column; gap:20px;">
+
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <p class="sheet-title">Add transaction</p>
+          <div class="sheet-close"><i class="ti ti-x" aria-hidden="true"></i></div>
+        </div>
+
+        <div class="type-toggle">
+          <div class="type-btn expense">
+            <i class="ti ti-arrow-up" aria-hidden="true" style="font-size:13px"></i> Expense
+          </div>
+          <div class="type-btn income-off">
+            <i class="ti ti-arrow-down" aria-hidden="true" style="font-size:13px"></i> Income
+          </div>
+        </div>
+
+        <div class="amount-section">
+          <p class="amount-label">AMOUNT (PKR)</p>
+          <p class="amount-display expense-color">3,240<span class="amount-cursor"></span></p>
+        </div>
+
+        <div class="form-section">
+
+          <p class="field-label">CATEGORY</p>
+          <div class="cat-grid" style="margin-bottom:12px">
+            <div class="cat-item selected">
+              <span class="cat-icon" style="color:#f59e0b"><i class="ti ti-shopping-cart" aria-hidden="true"></i></span>
+              <span class="cat-name">Groceries</span>
+            </div>
+            <div class="cat-item">
+              <span class="cat-icon" style="color:#6366f1"><i class="ti ti-car" aria-hidden="true"></i></span>
+              <span class="cat-name">Transport</span>
+            </div>
+            <div class="cat-item">
+              <span class="cat-icon" style="color:#ef4444"><i class="ti ti-heart" aria-hidden="true"></i></span>
+              <span class="cat-name">Health</span>
+            </div>
+            <div class="cat-item">
+              <span class="cat-icon" style="color:#7C3AED"><i class="ti ti-device-tv" aria-hidden="true"></i></span>
+              <span class="cat-name">Subscriptions</span>
+            </div>
+            <div class="cat-item">
+              <span class="cat-icon" style="color:#f59e0b"><i class="ti ti-tools" aria-hidden="true"></i></span>
+              <span class="cat-name">Utilities</span>
+            </div>
+            <div class="cat-item">
+              <span class="cat-icon" style="color:#6366f1"><i class="ti ti-shirt" aria-hidden="true"></i></span>
+              <span class="cat-name">Clothing</span>
+            </div>
+            <div class="cat-item">
+              <span class="cat-icon" style="color:#22c55e"><i class="ti ti-book" aria-hidden="true"></i></span>
+              <span class="cat-name">Education</span>
+            </div>
+            <div class="cat-item">
+              <span class="cat-icon" style="color:#555"><i class="ti ti-dots" aria-hidden="true"></i></span>
+              <span class="cat-name">Other</span>
+            </div>
+          </div>
+
+          <div class="row-2">
+            <div class="field">
+              <p class="field-label">DATE</p>
+              <div class="field-input">
+                <span class="field-value">May 15, 2026</span>
+                <i class="ti ti-calendar field-icon violet" aria-hidden="true"></i>
+              </div>
+            </div>
+            <div class="field">
+              <p class="field-label">MERCHANT</p>
+              <div class="field-input focused">
+                <span class="field-value">Carrefour</span>
+                <i class="ti ti-building-store field-icon violet" aria-hidden="true"></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="note-field">
+            <i class="ti ti-pencil" aria-hidden="true"></i>
+            <span>Add a note (optional)</span>
+          </div>
+
+        </div>
+
+        <div class="submit-btn">
+          <i class="ti ti-plus" aria-hidden="true"></i> Save expense
+        </div>
+      </div>
+    </div>
+
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <p class="sheet-title">Add transaction</p>
+          <div class="sheet-close"><i class="ti ti-x" aria-hidden="true"></i></div>
+        </div>
+
+        <div class="type-toggle">
+          <div class="type-btn expense-off">
+            <i class="ti ti-arrow-up" aria-hidden="true" style="font-size:13px"></i> Expense
+          </div>
+          <div class="type-btn income-on">
+            <i class="ti ti-arrow-down" aria-hidden="true" style="font-size:13px"></i> Income
+          </div>
+        </div>
+
+        <div class="amount-section">
+          <p class="amount-label">AMOUNT (PKR)</p>
+          <p class="amount-display income-color">1,40,000<span class="amount-cursor"></span></p>
+        </div>
+
+        <div class="form-section">
+
+          <p class="field-label">INCOME SOURCE</p>
+          <div class="cat-grid" style="margin-bottom:12px">
+            <div class="cat-item selected">
+              <span class="cat-icon" style="color:#22c55e"><i class="ti ti-briefcase" aria-hidden="true"></i></span>
+              <span class="cat-name">Salary</span>
+            </div>
+            <div class="cat-item">
+              <span class="cat-icon" style="color:#22c55e"><i class="ti ti-chart-line" aria-hidden="true"></i></span>
+              <span class="cat-name">Freelance</span>
+            </div>
+            <div class="cat-item">
+              <span class="cat-icon" style="color:#22c55e"><i class="ti ti-building-bank" aria-hidden="true"></i></span>
+              <span class="cat-name">Investment</span>
+            </div>
+            <div class="cat-item">
+              <span class="cat-icon" style="color:#555"><i class="ti ti-dots" aria-hidden="true"></i></span>
+              <span class="cat-name">Other</span>
+            </div>
+          </div>
+
+          <div class="row-2">
+            <div class="field">
+              <p class="field-label">DATE</p>
+              <div class="field-input">
+                <span class="field-value">May 1, 2026</span>
+                <i class="ti ti-calendar field-icon violet" aria-hidden="true"></i>
+              </div>
+            </div>
+            <div class="field">
+              <p class="field-label">FROM</p>
+              <div class="field-input focused">
+                <span class="field-value">Employer</span>
+                <i class="ti ti-user field-icon violet" aria-hidden="true"></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="note-field">
+            <i class="ti ti-pencil" aria-hidden="true"></i>
+            <span>Add a note (optional)</span>
+          </div>
+
+          <div style="height:8px"></div>
+
+        </div>
+
+        <div class="submit-btn income-btn">
+          <i class="ti ti-plus" aria-hidden="true"></i> Save income
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">Design decisions</p>
+
+    <div class="note">
+      <p class="note-head">Bottom sheet pattern</p>
+      <p class="note-body">The drag handle at the top signals this slides up from the home screen — no full navigation needed. One tap on + opens it, swipe down dismisses.</p>
+    </div>
+
+    <div class="note">
+      <p class="note-head"><span class="swatch-sm" style="background:#ef4444;margin-right:4px"></span>Red / <span class="swatch-sm" style="background:#22c55e;margin-right:4px"></span>Green toggle</p>
+      <p class="note-body">The active type (Expense or Income) colors the entire amount and the save button. The user never has to think about which mode they're in.</p>
+    </div>
+
+    <div class="note">
+      <p class="note-head">Big centered amount</p>
+      <p class="note-body">The number is the primary action — it should dominate. Users type it first, then fill the rest. The blinking cursor invites immediate input.</p>
+    </div>
+
+    <div class="note">
+      <p class="note-head">Category grid</p>
+      <p class="note-body">Icon grid beats a dropdown — faster to tap, no scrolling, visually consistent with category colors used throughout the app.</p>
+    </div>
+
+    <div class="note">
+      <p class="note-head"><span class="swatch-sm" style="background:#7C3AED;margin-right:4px"></span>Violet = active field</p>
+      <p class="note-body">Focused input borders and icons stay violet — same rule as the auth screen. One color for "where you are right now."</p>
+    </div>
+
+    <div class="note">
+      <p class="note-head">Income has fewer categories</p>
+      <p class="note-body">Salary, Freelance, Investment, Other — income sources are simpler than expense categories, so the grid is smaller and less cognitive load.</p>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,227 @@
+
+<style>
+  .pw { display: flex; justify-content: center; gap: 28px; padding: 2rem 0; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 300px; border-radius: 44px; border: 1.5px solid #2e2e2e; overflow: hidden; position: relative; background: #0e0e0e; }
+  .notch { width: 90px; height: 26px; background: #0e0e0e; border-radius: 0 0 16px 16px; margin: 0 auto; border: 1.5px solid #2e2e2e; border-top: none; }
+  .screen { background: #0e0e0e; padding: 0; min-height: 580px; }
+
+  .auth-body { padding: 32px 22px 40px; }
+
+  .logo-wrap { display: flex; align-items: center; gap: 8px; margin-bottom: 36px; }
+  .logo-icon { width: 36px; height: 36px; border-radius: 10px; background: #7C3AED; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff; }
+  .logo-name { font-size: 18px; font-weight: 500; color: #f0f0f0; }
+  .logo-dot { color: #7C3AED; }
+
+  .auth-heading { font-size: 22px; font-weight: 500; color: #fff; margin: 0 0 6px; }
+  .auth-sub { font-size: 12px; color: #555; margin: 0 0 28px; line-height: 1.5; }
+
+  .tab-row { display: flex; background: #161616; border-radius: 10px; border: 0.5px solid #272727; padding: 3px; margin-bottom: 24px; }
+  .tab { flex: 1; text-align: center; font-size: 12px; font-weight: 500; padding: 7px 0; border-radius: 8px; cursor: pointer; color: #555; }
+  .tab.active { background: #7C3AED; color: #fff; }
+
+  .field { margin-bottom: 13px; }
+  .field-label { font-size: 10px; color: #555; margin: 0 0 5px; letter-spacing: 0.04em; }
+  .field-input { width: 100%; box-sizing: border-box; background: #161616; border: 0.5px solid #2e2e2e; border-radius: 10px; padding: 10px 12px; font-size: 13px; color: #e0e0e0; display: flex; align-items: center; justify-content: space-between; }
+  .field-input.focused { border-color: #7C3AED; }
+  .field-placeholder { color: #444; font-size: 13px; }
+  .field-value { color: #e0e0e0; font-size: 13px; }
+  .field-icon { font-size: 15px; color: #444; }
+
+  .forgot { text-align: right; font-size: 10px; color: #7C3AED; margin: -6px 0 20px; }
+
+  .btn-primary { width: 100%; background: #7C3AED; border-radius: 12px; padding: 13px 0; text-align: center; font-size: 14px; font-weight: 500; color: #fff; margin-bottom: 16px; cursor: pointer; }
+
+  .divider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .div-line { flex: 1; height: 0.5px; background: #272727; }
+  .div-text { font-size: 10px; color: #444; }
+
+  .btn-social { width: 100%; background: #161616; border: 0.5px solid #272727; border-radius: 12px; padding: 11px 0; text-align: center; font-size: 12px; font-weight: 500; color: #bbb; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+  .social-icon { font-size: 15px; }
+
+  .signup-row { text-align: center; font-size: 11px; color: #555; margin-top: 20px; }
+  .signup-link { color: #7C3AED; font-weight: 500; }
+
+  .strength-row { display: flex; gap: 3px; margin-top: 5px; }
+  .strength-bar { flex: 1; height: 2px; border-radius: 2px; background: #272727; }
+  .strength-bar.filled { background: #f59e0b; }
+  .strength-bar.strong { background: #22c55e; }
+  .strength-label { font-size: 9px; color: #f59e0b; margin: 3px 0 0; }
+
+  .terms { font-size: 9px; color: #444; text-align: center; margin-top: 14px; line-height: 1.5; }
+  .terms-link { color: #7C3AED; }
+
+  .panel { max-width: 220px; padding-top: 0.5rem; }
+  .panel-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 14px; }
+  .note { background: var(--color-background-secondary); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+  .note-head { font-size: 11px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 3px; }
+  .note-body { font-size: 11px; color: var(--color-text-secondary); margin: 0; line-height: 1.5; }
+
+  .swatch-sm { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+</style>
+
+<h2 class="sr-only">FinPilot auth screen mockup in dark obsidian with violet accents, showing login and sign up tabs with form fields</h2>
+
+<div class="pw">
+
+  <div style="display:flex; flex-direction:column; gap:20px;">
+
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="auth-body">
+
+          <div class="logo-wrap">
+            <div class="logo-icon"><i class="ti ti-chart-arrows-vertical" aria-hidden="true"></i></div>
+            <span class="logo-name">Fin<span class="logo-dot">Pilot</span></span>
+          </div>
+
+          <p class="auth-heading">Welcome back</p>
+          <p class="auth-sub">Log in to your account to continue managing your money.</p>
+
+          <div class="tab-row">
+            <div class="tab active">Log in</div>
+            <div class="tab">Sign up</div>
+          </div>
+
+          <div class="field">
+            <p class="field-label">EMAIL</p>
+            <div class="field-input">
+              <span class="field-value">ahmed@gmail.com</span>
+              <i class="ti ti-check field-icon" aria-hidden="true" style="color:#22c55e"></i>
+            </div>
+          </div>
+
+          <div class="field">
+            <p class="field-label">PASSWORD</p>
+            <div class="field-input focused">
+              <span class="field-value">••••••••••</span>
+              <i class="ti ti-eye field-icon" aria-hidden="true" style="color:#7C3AED"></i>
+            </div>
+          </div>
+
+          <p class="forgot">Forgot password?</p>
+
+          <div class="btn-primary">Log in</div>
+
+          <div class="divider-row">
+            <div class="div-line"></div>
+            <span class="div-text">or continue with</span>
+            <div class="div-line"></div>
+          </div>
+
+          <div class="btn-social">
+            <i class="ti ti-brand-google social-icon" aria-hidden="true"></i>
+            Continue with Google
+          </div>
+
+          <p class="signup-row">Don't have an account? <span class="signup-link">Sign up</span></p>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="auth-body">
+
+          <div class="logo-wrap">
+            <div class="logo-icon"><i class="ti ti-chart-arrows-vertical" aria-hidden="true"></i></div>
+            <span class="logo-name">Fin<span class="logo-dot">Pilot</span></span>
+          </div>
+
+          <p class="auth-heading">Create account</p>
+          <p class="auth-sub">Start understanding your money in minutes.</p>
+
+          <div class="tab-row">
+            <div class="tab">Log in</div>
+            <div class="tab active">Sign up</div>
+          </div>
+
+          <div class="field">
+            <p class="field-label">FULL NAME</p>
+            <div class="field-input focused">
+              <span class="field-value">Ahmed Khan</span>
+              <i class="ti ti-user field-icon" aria-hidden="true" style="color:#7C3AED"></i>
+            </div>
+          </div>
+
+          <div class="field">
+            <p class="field-label">EMAIL</p>
+            <div class="field-input">
+              <span class="field-value">ahmed@gmail.com</span>
+              <i class="ti ti-check field-icon" aria-hidden="true" style="color:#22c55e"></i>
+            </div>
+          </div>
+
+          <div class="field">
+            <p class="field-label">PASSWORD</p>
+            <div class="field-input">
+              <span class="field-value">••••••••••</span>
+              <i class="ti ti-eye field-icon" aria-hidden="true" style="color:#444"></i>
+            </div>
+            <div class="strength-row">
+              <div class="strength-bar strong"></div>
+              <div class="strength-bar strong"></div>
+              <div class="strength-bar filled"></div>
+              <div class="strength-bar"></div>
+            </div>
+            <p class="strength-label">Medium strength — add a symbol to strengthen</p>
+          </div>
+
+          <div class="btn-primary" style="margin-top:6px">Create account</div>
+
+          <div class="divider-row">
+            <div class="div-line"></div>
+            <span class="div-text">or continue with</span>
+            <div class="div-line"></div>
+          </div>
+
+          <div class="btn-social">
+            <i class="ti ti-brand-google social-icon" aria-hidden="true"></i>
+            Continue with Google
+          </div>
+
+          <p class="terms">By signing up you agree to our <span class="terms-link">Terms</span> and <span class="terms-link">Privacy Policy</span></p>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">Design decisions</p>
+
+    <div class="note">
+      <p class="note-head">Logo placement</p>
+      <p class="note-body">Top-left, small — auth screens shouldn't feel like marketing pages. The logo grounds the user without dominating.</p>
+    </div>
+
+    <div class="note">
+      <p class="note-head">Tab switcher</p>
+      <p class="note-body">Login ↔ Sign up as a pill toggle keeps both flows on one screen — no separate route needed, less navigation friction.</p>
+    </div>
+
+    <div class="note">
+      <p class="note-head"><span class="swatch-sm" style="background:#7C3AED"></span>Violet = interactive</p>
+      <p class="note-body">The CTA button, active input border, eye icon, and links are all violet. It's the only color that means "tap this."</p>
+    </div>
+
+    <div class="note">
+      <p class="note-head"><span class="swatch-sm" style="background:#22c55e"></span>Green = validated</p>
+      <p class="note-body">Checkmark on confirmed fields. Same green as income on the home screen — consistent signal language.</p>
+    </div>
+
+    <div class="note">
+      <p class="note-head"><span class="swatch-sm" style="background:#f59e0b"></span>Amber = warning</p>
+      <p class="note-body">Password strength bars use green → amber → red. Subtle but teaches the user about security without lecturing.</p>
+    </div>
+
+    <div class="note">
+      <p class="note-head">No illustration</p>
+      <p class="note-body">Dark minimal auth screens don't need hero art. Whitespace and hierarchy do the work — keeps it feeling fast.</p>
+    </div>
+  </div>
+
+</div>

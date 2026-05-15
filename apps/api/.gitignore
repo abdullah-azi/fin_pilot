@@ -1,0 +1,28 @@
+# Python environments
+.venv/
+venv/
+ENV/
+
+# Python caches
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.pytype/
+*.py[cod]
+
+# Coverage / build metadata
+.coverage
+.coverage.*
+htmlcov/
+pip-wheel-metadata/
+*.egg-info/
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
