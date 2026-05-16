@@ -1,0 +1,448 @@
+
+<style>
+  .pw{display:flex;justify-content:center;gap:26px;padding:2rem 0;flex-wrap:wrap;align-items:flex-start;}
+  .phone{width:295px;border-radius:44px;border:1.5px solid #2e2e2e;overflow:hidden;background:#0e0e0e;}
+  .notch{width:88px;height:26px;background:#0e0e0e;border-radius:0 0 16px 16px;margin:0 auto;border:1.5px solid #2e2e2e;border-top:none;}
+  .screen{background:#0e0e0e;padding:0;}
+
+  .hdr{padding:14px 18px 12px;border-bottom:0.5px solid #1e1e1e;}
+  .hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .hdr-title{font-size:16px;font-weight:500;color:#f0f0f0;margin:0;}
+  .hdr-ic{font-size:20px;color:#555;}
+
+  .period-row{display:flex;gap:5px;}
+  .pchip{flex:1;text-align:center;padding:6px 0;border-radius:8px;font-size:10px;font-weight:500;background:#161616;border:0.5px solid #272727;color:#555;}
+  .pchip.sel{background:#1a1525;border-color:#7C3AED;color:#9b72f5;}
+
+  .body{padding:14px 14px 0;}
+
+  .donut-section{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
+  .donut-wrap{position:relative;width:90px;height:90px;flex-shrink:0;}
+  .donut-wrap svg{width:90px;height:90px;}
+  .donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;}
+  .donut-total{font-size:13px;font-weight:500;color:#f0f0f0;display:block;}
+  .donut-label{font-size:9px;color:#555;display:block;}
+  .legend{display:flex;flex-direction:column;gap:5px;flex:1;}
+  .legend-row{display:flex;align-items:center;gap:6px;}
+  .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .legend-name{font-size:10px;color:#bbb;flex:1;}
+  .legend-pct{font-size:10px;font-weight:500;color:#ddd;}
+  .legend-amt{font-size:9px;color:#555;margin-left:2px;}
+
+  .section-head{display:flex;justify-content:space-between;align-items:center;margin:0 0 8px;}
+  .sh-title{font-size:12px;font-weight:500;color:#bbb;margin:0;}
+  .sh-link{font-size:10px;color:#7C3AED;}
+
+  .cat-list{background:#161616;border-radius:12px;border:0.5px solid #272727;overflow:hidden;margin-bottom:13px;}
+  .cat-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:0.5px solid #1e1e1e;}
+  .cat-row:last-child{border-bottom:none;}
+  .cat-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+  .cat-info{flex:1;min-width:0;}
+  .cat-name{font-size:11px;font-weight:500;color:#ddd;margin:0 0 4px;}
+  .cat-bar-bg{height:3px;background:#272727;border-radius:2px;}
+  .cat-bar-fill{height:3px;border-radius:2px;}
+  .cat-right{text-align:right;flex-shrink:0;}
+  .cat-amt{font-size:12px;font-weight:500;color:#ef4444;display:block;margin-bottom:1px;}
+  .cat-pct{font-size:9px;color:#555;}
+
+  .trend-card{background:#161616;border:0.5px solid #272727;border-radius:12px;padding:12px 13px;margin-bottom:13px;}
+  .trend-chart{height:70px;display:flex;align-items:flex-end;gap:6px;margin:10px 0 6px;}
+  .bar-col{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;}
+  .bar-stack{width:100%;border-radius:4px 4px 0 0;transition:height 0.3s;}
+  .bar-month{font-size:9px;color:#555;}
+  .bar-current{position:relative;}
+  .bar-current::after{content:'';position:absolute;top:-3px;left:50%;transform:translateX(-50%);width:5px;height:5px;background:#7C3AED;border-radius:50%;}
+
+  .insight-list{display:flex;flex-direction:column;gap:7px;margin-bottom:13px;}
+  .insight-card{border-radius:10px;border:0.5px solid;padding:10px 12px;display:flex;gap:9px;align-items:flex-start;}
+  .insight-card.warn{background:#1f1a0e;border-color:#3d2f0d;}
+  .insight-card.bad{background:#1a0f0f;border-color:#3d1a1a;}
+  .insight-card.good{background:#0d1a12;border-color:#1a3d22;}
+  .insight-icon{font-size:15px;flex-shrink:0;margin-top:1px;}
+  .insight-body{flex:1;}
+  .insight-title{font-size:11px;font-weight:500;margin:0 0 2px;}
+  .insight-card.warn .insight-title{color:#f59e0b;}
+  .insight-card.bad .insight-title{color:#ef4444;}
+  .insight-card.good .insight-title{color:#22c55e;}
+  .insight-desc{font-size:10px;line-height:1.5;margin:0;}
+  .insight-card.warn .insight-desc{color:#7a5c1e;}
+  .insight-card.bad .insight-desc{color:#7a3a3a;}
+  .insight-card.good .insight-desc{color:#4a8c5c;}
+
+  .behavior-card{background:#161616;border:0.5px solid #272727;border-radius:12px;padding:12px 13px;margin-bottom:16px;}
+  .behavior-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .behavior-label{font-size:11px;font-weight:500;color:#bbb;margin:0;}
+  .behavior-badge{font-size:10px;padding:3px 9px;border-radius:20px;font-weight:500;}
+  .badge-moderate{background:#1f1a0e;border:0.5px solid #f59e0b44;color:#f59e0b;}
+  .score-row{display:flex;gap:3px;margin-bottom:6px;}
+  .score-seg{flex:1;height:5px;border-radius:3px;background:#272727;}
+  .score-seg.filled-bad{background:#ef4444;}
+  .score-seg.filled-warn{background:#f59e0b;}
+  .score-seg.filled-good{background:#22c55e;}
+  .score-labels{display:flex;justify-content:space-between;}
+  .score-label{font-size:9px;color:#555;}
+
+  .nb{display:flex;background:#161616;border-top:0.5px solid #272727;padding:8px 0 12px;}
+  .ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .ni-ic{font-size:19px;color:#444;}
+  .ni.active .ni-ic{color:#7C3AED;}
+  .ni-lb{font-size:8px;color:#444;}
+  .ni.active .ni-lb{color:#9b72f5;font-weight:500;}
+  .nd{width:3px;height:3px;border-radius:50%;background:#7C3AED;margin:0 auto;}
+
+  .slabel{text-align:center;font-size:11px;color:#555;padding:10px 0 4px;}
+  .panel{max-width:210px;padding-top:0.5rem;}
+  .ptitle{font-size:13px;font-weight:500;color:var(--color-text-primary);margin:0 0 14px;}
+  .pnote{background:var(--color-background-secondary);border-radius:10px;padding:10px 12px;margin-bottom:10px;}
+  .pnh{font-size:11px;font-weight:500;color:var(--color-text-primary);margin:0 0 3px;}
+  .pnb{font-size:11px;color:var(--color-text-secondary);margin:0;line-height:1.5;}
+  .sw{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;}
+</style>
+
+<h2 class="sr-only">FinPilot spending analysis screen showing donut chart, category breakdown, monthly trend bars, AI insights, and spending behavior score</h2>
+
+<div class="pw">
+
+  <!-- Screen 1: Category breakdown view -->
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <p class="slabel">Category breakdown</p>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+
+        <div class="hdr">
+          <div class="hdr-top">
+            <p class="hdr-title">Spending analysis</p>
+            <i class="ti ti-share hdr-ic" aria-hidden="true"></i>
+          </div>
+          <div class="period-row">
+            <div class="pchip">Jan</div>
+            <div class="pchip">Feb</div>
+            <div class="pchip">Mar</div>
+            <div class="pchip">Apr</div>
+            <div class="pchip sel">May</div>
+            <div class="pchip">6M</div>
+            <div class="pchip">1Y</div>
+          </div>
+        </div>
+
+        <div class="body">
+
+          <!-- Donut chart -->
+          <div class="donut-section">
+            <div class="donut-wrap">
+              <svg viewBox="0 0 90 90">
+                <circle cx="45" cy="45" r="34" fill="none" stroke="#272727" stroke-width="12"/>
+                <!-- Food 33% -->
+                <circle cx="45" cy="45" r="34" fill="none" stroke="#f59e0b" stroke-width="12"
+                  stroke-dasharray="70.5 143.5" stroke-dashoffset="0" transform="rotate(-90 45 45)"/>
+                <!-- Transport 16.5% -->
+                <circle cx="45" cy="45" r="34" fill="none" stroke="#6366f1" stroke-width="12"
+                  stroke-dasharray="35.3 178.7" stroke-dashoffset="-70.5" transform="rotate(-90 45 45)"/>
+                <!-- Health 11% -->
+                <circle cx="45" cy="45" r="34" fill="none" stroke="#ef4444" stroke-width="12"
+                  stroke-dasharray="23.5 190.5" stroke-dashoffset="-105.8" transform="rotate(-90 45 45)"/>
+                <!-- Subscriptions 8.6% -->
+                <circle cx="45" cy="45" r="34" fill="none" stroke="#7C3AED" stroke-width="12"
+                  stroke-dasharray="18.4 195.6" stroke-dashoffset="-129.3" transform="rotate(-90 45 45)"/>
+                <!-- Other 30.9% -->
+                <circle cx="45" cy="45" r="34" fill="none" stroke="#2e2e2e" stroke-width="12"
+                  stroke-dasharray="65.8 148.2" stroke-dashoffset="-147.7" transform="rotate(-90 45 45)"/>
+              </svg>
+              <div class="donut-center">
+                <span class="donut-total">55,680</span>
+                <span class="donut-label">total</span>
+              </div>
+            </div>
+            <div class="legend">
+              <div class="legend-row">
+                <div class="legend-dot" style="background:#f59e0b"></div>
+                <span class="legend-name">Food</span>
+                <span class="legend-pct">33%</span>
+                <span class="legend-amt">18,400</span>
+              </div>
+              <div class="legend-row">
+                <div class="legend-dot" style="background:#6366f1"></div>
+                <span class="legend-name">Transport</span>
+                <span class="legend-pct">16%</span>
+                <span class="legend-amt">9,200</span>
+              </div>
+              <div class="legend-row">
+                <div class="legend-dot" style="background:#ef4444"></div>
+                <span class="legend-name">Health</span>
+                <span class="legend-pct">11%</span>
+                <span class="legend-amt">6,100</span>
+              </div>
+              <div class="legend-row">
+                <div class="legend-dot" style="background:#7C3AED"></div>
+                <span class="legend-name">Subscriptions</span>
+                <span class="legend-pct">9%</span>
+                <span class="legend-amt">4,800</span>
+              </div>
+              <div class="legend-row">
+                <div class="legend-dot" style="background:#2e2e2e"></div>
+                <span class="legend-name">Others</span>
+                <span class="legend-pct">31%</span>
+                <span class="legend-amt">17,180</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Category bars -->
+          <div class="section-head">
+            <p class="sh-title">By category</p>
+            <span class="sh-link">See all</span>
+          </div>
+          <div class="cat-list">
+            <div class="cat-row">
+              <div class="cat-icon" style="background:#1f1a0e"><i class="ti ti-shopping-cart" aria-hidden="true" style="color:#f59e0b"></i></div>
+              <div class="cat-info">
+                <p class="cat-name">Food & groceries</p>
+                <div class="cat-bar-bg"><div class="cat-bar-fill" style="width:75%;background:#f59e0b"></div></div>
+              </div>
+              <div class="cat-right">
+                <span class="cat-amt">Rs 18,400</span>
+                <span class="cat-pct">↑ 28% vs last mo</span>
+              </div>
+            </div>
+            <div class="cat-row">
+              <div class="cat-icon" style="background:#131520"><i class="ti ti-car" aria-hidden="true" style="color:#6366f1"></i></div>
+              <div class="cat-info">
+                <p class="cat-name">Transport</p>
+                <div class="cat-bar-bg"><div class="cat-bar-fill" style="width:38%;background:#6366f1"></div></div>
+              </div>
+              <div class="cat-right">
+                <span class="cat-amt">Rs 9,200</span>
+                <span class="cat-pct">↓ 5% vs last mo</span>
+              </div>
+            </div>
+            <div class="cat-row">
+              <div class="cat-icon" style="background:#1a100e"><i class="ti ti-heart" aria-hidden="true" style="color:#ef4444"></i></div>
+              <div class="cat-info">
+                <p class="cat-name">Health</p>
+                <div class="cat-bar-bg"><div class="cat-bar-fill" style="width:25%;background:#ef4444"></div></div>
+              </div>
+              <div class="cat-right">
+                <span class="cat-amt">Rs 6,100</span>
+                <span class="cat-pct">↑ 12% vs last mo</span>
+              </div>
+            </div>
+            <div class="cat-row">
+              <div class="cat-icon" style="background:#13131f"><i class="ti ti-device-tv" aria-hidden="true" style="color:#7C3AED"></i></div>
+              <div class="cat-info">
+                <p class="cat-name">Subscriptions</p>
+                <div class="cat-bar-bg"><div class="cat-bar-fill" style="width:20%;background:#7C3AED"></div></div>
+              </div>
+              <div class="cat-right">
+                <span class="cat-amt">Rs 4,800</span>
+                <span class="cat-pct">→ same</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Monthly trend -->
+          <div class="section-head">
+            <p class="sh-title">Monthly trend</p>
+          </div>
+          <div class="trend-card">
+            <div class="trend-chart">
+              <div class="bar-col">
+                <div class="bar-stack" style="height:38px;background:#272727;border-radius:4px 4px 0 0;"></div>
+                <span class="bar-month">Feb</span>
+              </div>
+              <div class="bar-col">
+                <div class="bar-stack" style="height:45px;background:#272727;border-radius:4px 4px 0 0;"></div>
+                <span class="bar-month">Mar</span>
+              </div>
+              <div class="bar-col">
+                <div class="bar-stack" style="height:42px;background:#272727;border-radius:4px 4px 0 0;"></div>
+                <span class="bar-month">Apr</span>
+              </div>
+              <div class="bar-col bar-current">
+                <div class="bar-stack" style="height:57px;background:#7C3AED;border-radius:4px 4px 0 0;"></div>
+                <span class="bar-month" style="color:#9b72f5;font-weight:500;">May</span>
+              </div>
+              <div class="bar-col">
+                <div class="bar-stack" style="height:20px;background:#1a1525;border:0.5px dashed #3d2f6a;border-radius:4px 4px 0 0;"></div>
+                <span class="bar-month" style="color:#444;">Jun</span>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:9px;color:#555;">May is your highest spend month in 4 months</span>
+              <span style="font-size:10px;font-weight:500;color:#ef4444;">↑ 18%</span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="nb">
+          <div class="ni"><i class="ti ti-home ni-ic" aria-hidden="true"></i><span class="ni-lb">Home</span></div>
+          <div class="ni"><i class="ti ti-list ni-ic" aria-hidden="true"></i><span class="ni-lb">Transactions</span></div>
+          <div class="ni"><i class="ti ti-robot ni-ic" aria-hidden="true"></i><span class="ni-lb">Ask AI</span></div>
+          <div class="ni active"><i class="ti ti-chart-pie ni-ic" aria-hidden="true"></i><span class="ni-lb">Insights</span><div class="nd"></div></div>
+          <div class="ni"><i class="ti ti-user ni-ic" aria-hidden="true"></i><span class="ni-lb">Profile</span></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: AI insights + behavior score -->
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <p class="slabel">AI insights + behavior score</p>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+
+        <div class="hdr">
+          <div class="hdr-top">
+            <p class="hdr-title">Spending analysis</p>
+            <i class="ti ti-share hdr-ic" aria-hidden="true"></i>
+          </div>
+          <div class="period-row">
+            <div class="pchip">Jan</div>
+            <div class="pchip">Feb</div>
+            <div class="pchip">Mar</div>
+            <div class="pchip">Apr</div>
+            <div class="pchip sel">May</div>
+            <div class="pchip">6M</div>
+            <div class="pchip">1Y</div>
+          </div>
+        </div>
+
+        <div class="body">
+
+          <!-- Behavior score -->
+          <div class="section-head">
+            <p class="sh-title">Spending behavior</p>
+          </div>
+          <div class="behavior-card">
+            <div class="behavior-top">
+              <p class="behavior-label">This month's pattern</p>
+              <span class="behavior-badge badge-moderate">Moderate spender</span>
+            </div>
+            <div class="score-row">
+              <div class="score-seg filled-good"></div>
+              <div class="score-seg filled-good"></div>
+              <div class="score-seg filled-good"></div>
+              <div class="score-seg filled-warn"></div>
+              <div class="score-seg filled-warn"></div>
+              <div class="score-seg"></div>
+              <div class="score-seg"></div>
+              <div class="score-seg"></div>
+            </div>
+            <div class="score-labels">
+              <span class="score-label">Disciplined</span>
+              <span class="score-label">Moderate</span>
+              <span class="score-label">Impulsive</span>
+            </div>
+            <div style="margin-top:10px;padding-top:10px;border-top:0.5px solid #272727;display:flex;gap:12px;">
+              <div style="flex:1;text-align:center;">
+                <p style="font-size:18px;font-weight:500;color:#22c55e;margin:0 0 2px;">12</p>
+                <p style="font-size:9px;color:#555;margin:0;">planned buys</p>
+              </div>
+              <div style="width:0.5px;background:#272727;"></div>
+              <div style="flex:1;text-align:center;">
+                <p style="font-size:18px;font-weight:500;color:#f59e0b;margin:0 0 2px;">5</p>
+                <p style="font-size:9px;color:#555;margin:0;">impulse buys</p>
+              </div>
+              <div style="width:0.5px;background:#272727;"></div>
+              <div style="flex:1;text-align:center;">
+                <p style="font-size:18px;font-weight:500;color:#ef4444;margin:0 0 2px;">3</p>
+                <p style="font-size:9px;color:#555;margin:0;">overspent days</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI insights -->
+          <div class="section-head">
+            <p class="sh-title">AI insights</p>
+            <span style="font-size:10px;color:#7C3AED;display:flex;align-items:center;gap:3px;"><i class="ti ti-robot" aria-hidden="true" style="font-size:12px"></i> powered</span>
+          </div>
+          <div class="insight-list">
+            <div class="insight-card bad">
+              <i class="ti ti-flame insight-icon" aria-hidden="true" style="color:#ef4444"></i>
+              <div class="insight-body">
+                <p class="insight-title">Food spending out of control</p>
+                <p class="insight-desc">Rs 18,400 on food is 28% above last month and 33% of all spending. 4 of your grocery trips were over Rs 4,000.</p>
+              </div>
+            </div>
+            <div class="insight-card warn">
+              <i class="ti ti-clock insight-icon" aria-hidden="true" style="color:#f59e0b"></i>
+              <div class="insight-body">
+                <p class="insight-title">Weekend spending spikes</p>
+                <p class="insight-desc">You spend 2.4× more on weekends than weekdays. Last Saturday alone was Rs 8,200 — your highest single-day spend.</p>
+              </div>
+            </div>
+            <div class="insight-card warn">
+              <i class="ti ti-device-tv insight-icon" aria-hidden="true" style="color:#f59e0b"></i>
+              <div class="insight-body">
+                <p class="insight-title">3 unused subscriptions</p>
+                <p class="insight-desc">Netflix, Spotify, and Adobe are costing Rs 4,800/mo. Usage data suggests you haven't used Adobe in 6 weeks.</p>
+              </div>
+            </div>
+            <div class="insight-card good">
+              <i class="ti ti-circle-check insight-icon" aria-hidden="true" style="color:#22c55e"></i>
+              <div class="insight-body">
+                <p class="insight-title">Transport cost improving</p>
+                <p class="insight-desc">Down 5% from last month. Your shift to Careem Bike on short routes is saving ~Rs 1,200/month.</p>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:#1a1525;border:0.5px solid #3d2f6a;border-radius:10px;padding:10px 13px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <i class="ti ti-robot" aria-hidden="true" style="font-size:16px;color:#7C3AED;"></i>
+              <span style="font-size:11px;color:#9b72f5;">Ask AI about your spending</span>
+            </div>
+            <i class="ti ti-chevron-right" aria-hidden="true" style="font-size:14px;color:#7C3AED;"></i>
+          </div>
+
+        </div>
+
+        <div class="nb">
+          <div class="ni"><i class="ti ti-home ni-ic" aria-hidden="true"></i><span class="ni-lb">Home</span></div>
+          <div class="ni"><i class="ti ti-list ni-ic" aria-hidden="true"></i><span class="ni-lb">Transactions</span></div>
+          <div class="ni"><i class="ti ti-robot ni-ic" aria-hidden="true"></i><span class="ni-lb">Ask AI</span></div>
+          <div class="ni active"><i class="ti ti-chart-pie ni-ic" aria-hidden="true"></i><span class="ni-lb">Insights</span><div class="nd"></div></div>
+          <div class="ni"><i class="ti ti-user ni-ic" aria-hidden="true"></i><span class="ni-lb">Profile</span></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel -->
+  <div class="panel">
+    <p class="ptitle">Design decisions</p>
+    <div class="pnote">
+      <p class="pnh">Two scrollable halves</p>
+      <p class="pnb">Both screens are the same page — the user scrolls from the donut + category bars straight into behavior score and AI insights. Split here just to show both halves clearly.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh">Donut over pie</p>
+      <p class="pnb">The hollow center shows the total spent — two pieces of info in one visual. Tapping a donut segment should highlight that category row below it.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh">Month-on-month delta</p>
+      <p class="pnb">Every category row shows ↑↓→ vs last month. That single comparison is more actionable than the absolute number alone.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh">Trend bar — current month highlighted</p>
+      <p class="pnb">The current month bar is violet; past months are gray; next month is a dashed outline (projected). The dot above May marks it as the active period.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh"><span class="sw" style="background:#f59e0b"></span>Behavior score — not a judgment</p>
+      <p class="pnb">"Moderate spender" is framed as a pattern, not a grade. The spec explicitly says behavioral feedback should be informative, not financial judgment — the tone here reflects that.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh">3-color insight cards</p>
+      <p class="pnb">Red = act now, amber = watch this, green = doing well. Same semantic color rules as the rest of the app — no new mental model to learn.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh">Ask AI shortcut at the bottom</p>
+      <p class="pnb">After reading their insights a user's natural next question is "so what do I do?" — the violet AI card bridges directly into the assistant without navigating away.</p>
+    </div>
+  </div>
+
+</div>

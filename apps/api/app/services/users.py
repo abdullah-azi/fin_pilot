@@ -11,6 +11,10 @@ from app.models.user_preference import UserPreference
 from app.schemas.user import UserCreate, UserPreferenceUpdate, UserUpdate
 
 
+def normalize_email(value: str) -> str:
+    return value.strip().lower()
+
+
 def list_users(db: Session) -> list[User]:
     return list(
         db.scalars(
@@ -31,7 +35,8 @@ def get_user_or_404(db: Session, user_id: UUID) -> User:
 
 
 def create_user(db: Session, payload: UserCreate) -> User:
-    existing = db.scalar(select(User).where(User.email == payload.email))
+    normalized_email = normalize_email(str(payload.email))
+    existing = db.scalar(select(User).where(User.email == normalized_email))
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -39,7 +44,7 @@ def create_user(db: Session, payload: UserCreate) -> User:
         )
 
     user = User(
-        email=str(payload.email),
+        email=normalized_email,
         hashed_password=hash_password(payload.password),
         full_name=payload.full_name,
         currency=payload.currency.upper(),
@@ -72,14 +77,15 @@ def create_user(db: Session, payload: UserCreate) -> User:
 def update_user(db: Session, user_id: UUID, payload: UserUpdate) -> User:
     user = get_user_or_404(db, user_id)
 
-    if payload.email and payload.email != user.email:
-        existing = db.scalar(select(User).where(User.email == payload.email, User.id != user_id))
+    if payload.email and normalize_email(str(payload.email)) != user.email:
+        normalized_email = normalize_email(str(payload.email))
+        existing = db.scalar(select(User).where(User.email == normalized_email, User.id != user_id))
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="A user with this email already exists.",
             )
-        user.email = str(payload.email)
+        user.email = normalized_email
 
     if payload.password:
         user.hashed_password = hash_password(payload.password)
@@ -117,4 +123,3 @@ def _upsert_preferences(user: User, payload: UserPreferenceUpdate) -> None:
 
     for field_name, value in updates.items():
         setattr(preferences, field_name, value)
-

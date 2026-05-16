@@ -1,14 +1,20 @@
+from datetime import date
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
+from app.models.enums import TransactionType
 from app.models.user import User
 from app.schemas.transaction import (
+    TransactionCategorySnapshot,
     TransactionCreate,
+    TransactionHistoryItemResponse,
     TransactionListResponse,
+    TransactionListMeta,
     TransactionResponse,
+    TransactionHistorySummary,
     TransactionUpdate,
 )
 from app.services.transactions import (
@@ -25,11 +31,52 @@ router = APIRouter()
 @router.get("/", response_model=TransactionListResponse)
 async def transactions_index(
     category_id: UUID | None = Query(default=None),
+    transaction_type: TransactionType | None = Query(default=None, alias="type"),
+    q: str | None = Query(default=None, min_length=1),
+    date_from: date | None = Query(default=None),
+    date_to: date | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> TransactionListResponse:
+    result = list_transactions(
+        db,
+        user_id=current_user.id,
+        category_id=category_id,
+        transaction_type=transaction_type,
+        date_from=date_from,
+        date_to=date_to,
+        query=q,
+        limit=limit,
+        offset=offset,
+    )
+
     return TransactionListResponse(
-        items=list_transactions(db, user_id=current_user.id, category_id=category_id)
+        items=[
+            TransactionHistoryItemResponse(
+                **item.transaction.__dict__,
+                category=TransactionCategorySnapshot(
+                    name=item.category_name,
+                    color=item.category_color,
+                    icon=item.category_icon,
+                )
+                if item.category_name or item.category_color or item.category_icon
+                else None,
+            )
+            for item in result.items
+        ],
+        summary=TransactionHistorySummary(
+            total_count=result.summary.total_count,
+            total_income=result.summary.total_income,
+            total_expense=result.summary.total_expense,
+            net=result.summary.net,
+        ),
+        meta=TransactionListMeta(
+            limit=result.limit,
+            offset=result.offset,
+            has_more=result.has_more,
+        ),
     )
 
 

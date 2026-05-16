@@ -1,0 +1,334 @@
+
+<style>
+  .pw{display:flex;justify-content:center;gap:26px;padding:2rem 0;flex-wrap:wrap;align-items:flex-start;}
+  .phone{width:295px;border-radius:44px;border:1.5px solid #2e2e2e;overflow:hidden;background:#0e0e0e;}
+  .notch{width:88px;height:26px;background:#0e0e0e;border-radius:0 0 16px 16px;margin:0 auto;border:1.5px solid #2e2e2e;border-top:none;}
+  .screen{background:#0e0e0e;padding:0;}
+
+  .hdr{padding:14px 18px 12px;border-bottom:0.5px solid #1e1e1e;}
+  .hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+  .hdr-title{font-size:16px;font-weight:500;color:#f0f0f0;margin:0;}
+  .hdr-sub{font-size:11px;color:#555;margin:0;}
+  .add-btn{display:flex;align-items:center;gap:5px;background:#1a1525;border:0.5px solid #7C3AED;border-radius:20px;padding:6px 12px;font-size:11px;color:#9b72f5;font-weight:500;}
+
+  .body{padding:14px 14px 0;}
+
+  .summary-strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:14px;}
+  .sum-card{background:#161616;border:0.5px solid #272727;border-radius:10px;padding:9px 10px;text-align:center;}
+  .sum-val{font-size:14px;font-weight:500;margin:0 0 2px;}
+  .sum-label{font-size:9px;color:#555;margin:0;}
+
+  .section-head{display:flex;justify-content:space-between;align-items:center;margin:0 0 9px;}
+  .sh-title{font-size:12px;font-weight:500;color:#bbb;margin:0;}
+  .sh-link{font-size:10px;color:#7C3AED;}
+
+  /* Goal card */
+  .goal-card{background:#161616;border:0.5px solid #272727;border-radius:13px;padding:13px 13px 11px;margin-bottom:10px;}
+  .goal-card.urgent{border-color:#ef444444;}
+  .goal-card.on-track{border-color:#22c55e44;}
+  .goal-top{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
+  .goal-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+  .goal-meta{flex:1;}
+  .goal-name{font-size:12px;font-weight:500;color:#e0e0e0;margin:0 0 2px;}
+  .goal-date{font-size:10px;color:#555;margin:0;}
+  .goal-badge{font-size:9px;padding:3px 8px;border-radius:20px;font-weight:500;white-space:nowrap;}
+  .badge-on{background:#0d1a12;border:0.5px solid #22c55e44;color:#22c55e;}
+  .badge-warn{background:#1f1a0e;border:0.5px solid #f59e0b44;color:#f59e0b;}
+  .badge-urgent{background:#1a0f0f;border:0.5px solid #ef444444;color:#ef4444;}
+  .badge-new{background:#1a1525;border:0.5px solid #7C3AED44;color:#9b72f5;}
+
+  .goal-amounts{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;}
+  .goal-saved{font-size:15px;font-weight:500;color:#f0f0f0;}
+  .goal-target{font-size:11px;color:#555;}
+  .goal-pct{font-size:12px;font-weight:500;}
+
+  .prog-bg{height:6px;background:#272727;border-radius:3px;margin-bottom:7px;}
+  .prog-fill{height:6px;border-radius:3px;}
+
+  .goal-footer{display:flex;justify-content:space-between;align-items:center;}
+  .goal-pace{font-size:10px;color:#555;}
+  .goal-pace span{color:#bbb;font-weight:500;}
+  .goal-action{font-size:10px;color:#7C3AED;display:flex;align-items:center;gap:3px;}
+
+  /* Add goal card */
+  .add-goal-card{background:#161616;border:0.5px dashed #2e2e2e;border-radius:13px;padding:16px 13px;margin-bottom:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;}
+  .add-goal-icon{width:36px;height:36px;border-radius:10px;background:#1a1525;border:0.5px solid #7C3AED44;display:flex;align-items:center;justify-content:center;font-size:18px;color:#7C3AED;}
+  .add-goal-text{font-size:12px;color:#555;}
+  .add-goal-sub{font-size:10px;color:#3a3a3a;}
+
+  /* AI suggestion */
+  .ai-suggest{background:#1a1525;border:0.5px solid #3d2f6a;border-radius:11px;padding:11px 13px;margin-bottom:14px;}
+  .ai-suggest-top{display:flex;align-items:center;gap:7px;margin-bottom:8px;}
+  .ai-suggest-title{font-size:11px;font-weight:500;color:#c4b5fd;margin:0;}
+  .ai-suggest-body{font-size:10px;color:#9b8cc4;line-height:1.55;margin:0 0 9px;}
+  .ai-suggest-body strong{color:#c4b5fd;font-weight:500;}
+  .ai-suggest-chips{display:flex;gap:6px;flex-wrap:wrap;}
+  .ai-chip{font-size:10px;background:#161616;border:0.5px solid #3d2f6a;border-radius:20px;padding:4px 10px;color:#9b72f5;}
+
+  .nb{display:flex;background:#161616;border-top:0.5px solid #272727;padding:8px 0 12px;}
+  .ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .ni-ic{font-size:19px;color:#444;}
+  .ni.active .ni-ic{color:#7C3AED;}
+  .ni-lb{font-size:8px;color:#444;}
+  .ni.active .ni-lb{color:#9b72f5;font-weight:500;}
+  .nd{width:3px;height:3px;border-radius:50%;background:#7C3AED;margin:0 auto;}
+
+  .slabel{text-align:center;font-size:11px;color:#555;padding:10px 0 4px;}
+  .panel{max-width:210px;padding-top:0.5rem;}
+  .ptitle{font-size:13px;font-weight:500;color:var(--color-text-primary);margin:0 0 14px;}
+  .pnote{background:var(--color-background-secondary);border-radius:10px;padding:10px 12px;margin-bottom:10px;}
+  .pnh{font-size:11px;font-weight:500;color:var(--color-text-primary);margin:0 0 3px;}
+  .pnb{font-size:11px;color:var(--color-text-secondary);margin:0;line-height:1.5;}
+  .sw{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;}
+</style>
+
+<h2 class="sr-only">FinPilot savings goals screen showing active goals with progress bars, status badges, AI suggestions, and an add goal state</h2>
+
+<div class="pw">
+
+  <!-- Screen 1: Goals overview -->
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <p class="slabel">Goals overview</p>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+
+        <div class="hdr">
+          <div class="hdr-top">
+            <p class="hdr-title">Savings goals</p>
+            <div class="add-btn"><i class="ti ti-plus" aria-hidden="true" style="font-size:13px"></i> New goal</div>
+          </div>
+          <p class="hdr-sub">3 active goals · May 2026</p>
+        </div>
+
+        <div class="body">
+
+          <div class="summary-strip">
+            <div class="sum-card">
+              <p class="sum-val" style="color:#22c55e">Rs 1.24L</p>
+              <p class="sum-label">total saved</p>
+            </div>
+            <div class="sum-card">
+              <p class="sum-val" style="color:#f0f0f0">Rs 3.5L</p>
+              <p class="sum-label">total target</p>
+            </div>
+            <div class="sum-card">
+              <p class="sum-val" style="color:#7C3AED">35%</p>
+              <p class="sum-label">overall progress</p>
+            </div>
+          </div>
+
+          <div class="ai-suggest">
+            <div class="ai-suggest-top">
+              <i class="ti ti-robot" aria-hidden="true" style="font-size:15px;color:#7C3AED"></i>
+              <p class="ai-suggest-title">FinPilot recommendation</p>
+            </div>
+            <p class="ai-suggest-body">Based on your income and spending, you can save <strong>Rs 12,500/month</strong> comfortably. Allocating it across your goals would hit all 3 targets on time.</p>
+            <div class="ai-suggest-chips">
+              <div class="ai-chip">See allocation plan</div>
+              <div class="ai-chip">Adjust goals</div>
+            </div>
+          </div>
+
+          <div class="section-head">
+            <p class="sh-title">Active goals</p>
+          </div>
+
+          <!-- Goal 1: Emergency fund — on track -->
+          <div class="goal-card on-track">
+            <div class="goal-top">
+              <div class="goal-icon" style="background:#0d1a12"><i class="ti ti-shield" aria-hidden="true" style="color:#22c55e"></i></div>
+              <div class="goal-meta">
+                <p class="goal-name">Emergency fund</p>
+                <p class="goal-date">Target: Dec 2026</p>
+              </div>
+              <span class="goal-badge badge-on">On track</span>
+            </div>
+            <div class="goal-amounts">
+              <span class="goal-saved">Rs 42,000</span>
+              <span class="goal-target">of Rs 1,00,000</span>
+              <span class="goal-pct" style="color:#22c55e">42%</span>
+            </div>
+            <div class="prog-bg"><div class="prog-fill" style="width:42%;background:#22c55e"></div></div>
+            <div class="goal-footer">
+              <p class="goal-pace">Save <span>Rs 8,200/mo</span> to hit target</p>
+              <span class="goal-action"><i class="ti ti-pencil" aria-hidden="true" style="font-size:12px"></i> Edit</span>
+            </div>
+          </div>
+
+          <!-- Goal 2: Laptop — at risk -->
+          <div class="goal-card urgent">
+            <div class="goal-top">
+              <div class="goal-icon" style="background:#131520"><i class="ti ti-device-laptop" aria-hidden="true" style="color:#6366f1"></i></div>
+              <div class="goal-meta">
+                <p class="goal-name">New laptop</p>
+                <p class="goal-date">Target: Aug 2026</p>
+              </div>
+              <span class="goal-badge badge-urgent">At risk</span>
+            </div>
+            <div class="goal-amounts">
+              <span class="goal-saved">Rs 28,000</span>
+              <span class="goal-target">of Rs 1,20,000</span>
+              <span class="goal-pct" style="color:#ef4444">23%</span>
+            </div>
+            <div class="prog-bg"><div class="prog-fill" style="width:23%;background:#ef4444"></div></div>
+            <div class="goal-footer">
+              <p class="goal-pace">Need <span style="color:#ef4444">Rs 23,000/mo</span> — too aggressive</p>
+              <span class="goal-action"><i class="ti ti-pencil" aria-hidden="true" style="font-size:12px"></i> Edit</span>
+            </div>
+          </div>
+
+          <!-- Goal 3: Holiday — warn -->
+          <div class="goal-card">
+            <div class="goal-top">
+              <div class="goal-icon" style="background:#1f1a0e"><i class="ti ti-plane" aria-hidden="true" style="color:#f59e0b"></i></div>
+              <div class="goal-meta">
+                <p class="goal-name">Holiday trip</p>
+                <p class="goal-date">Target: Mar 2027</p>
+              </div>
+              <span class="goal-badge badge-warn">Behind</span>
+            </div>
+            <div class="goal-amounts">
+              <span class="goal-saved">Rs 54,000</span>
+              <span class="goal-target">of Rs 1,30,000</span>
+              <span class="goal-pct" style="color:#f59e0b">41%</span>
+            </div>
+            <div class="prog-bg"><div class="prog-fill" style="width:41%;background:#f59e0b"></div></div>
+            <div class="goal-footer">
+              <p class="goal-pace">Save <span>Rs 4,100/mo</span> to catch up</p>
+              <span class="goal-action"><i class="ti ti-pencil" aria-hidden="true" style="font-size:12px"></i> Edit</span>
+            </div>
+          </div>
+
+          <div class="add-goal-card">
+            <div class="add-goal-icon"><i class="ti ti-plus" aria-hidden="true"></i></div>
+            <p class="add-goal-text">Add another goal</p>
+            <p class="add-goal-sub">Wedding, car, education...</p>
+          </div>
+
+        </div>
+
+        <div class="nb">
+          <div class="ni"><i class="ti ti-home ni-ic" aria-hidden="true"></i><span class="ni-lb">Home</span></div>
+          <div class="ni"><i class="ti ti-list ni-ic" aria-hidden="true"></i><span class="ni-lb">Transactions</span></div>
+          <div class="ni"><i class="ti ti-robot ni-ic" aria-hidden="true"></i><span class="ni-lb">Ask AI</span></div>
+          <div class="ni active"><i class="ti ti-chart-pie ni-ic" aria-hidden="true"></i><span class="ni-lb">Insights</span><div class="nd"></div></div>
+          <div class="ni"><i class="ti ti-user ni-ic" aria-hidden="true"></i><span class="ni-lb">Profile</span></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: Add / edit goal -->
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <p class="slabel">Add new goal</p>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div style="width:36px;height:4px;background:#2e2e2e;border-radius:2px;margin:14px auto 0;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 0;">
+          <p style="font-size:15px;font-weight:500;color:#f0f0f0;margin:0;">New savings goal</p>
+          <div style="width:28px;height:28px;border-radius:50%;background:#1e1e1e;border:0.5px solid #2e2e2e;display:flex;align-items:center;justify-content:center;font-size:14px;color:#666;"><i class="ti ti-x" aria-hidden="true"></i></div>
+        </div>
+
+        <div style="padding:18px 20px 0;">
+
+          <!-- Icon picker -->
+          <p style="font-size:10px;color:#555;letter-spacing:0.04em;margin:0 0 8px;">GOAL ICON</p>
+          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:16px;">
+            <div style="aspect-ratio:1;background:#0d1a12;border:0.5px solid #22c55e44;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#22c55e;"><i class="ti ti-shield" aria-hidden="true"></i></div>
+            <div style="aspect-ratio:1;background:#1a1525;border:1.5px solid #7C3AED;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#7C3AED;"><i class="ti ti-plane" aria-hidden="true"></i></div>
+            <div style="aspect-ratio:1;background:#161616;border:0.5px solid #272727;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#444;"><i class="ti ti-car" aria-hidden="true"></i></div>
+            <div style="aspect-ratio:1;background:#161616;border:0.5px solid #272727;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#444;"><i class="ti ti-device-laptop" aria-hidden="true"></i></div>
+            <div style="aspect-ratio:1;background:#161616;border:0.5px solid #272727;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#444;"><i class="ti ti-home" aria-hidden="true"></i></div>
+            <div style="aspect-ratio:1;background:#161616;border:0.5px solid #272727;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#444;"><i class="ti ti-heart" aria-hidden="true"></i></div>
+          </div>
+
+          <!-- Goal name -->
+          <p style="font-size:10px;color:#555;letter-spacing:0.04em;margin:0 0 5px;">GOAL NAME</p>
+          <div style="background:#161616;border:0.5px solid #7C3AED;border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <span style="font-size:13px;color:#e0e0e0;">Holiday trip to Turkey</span>
+            <i class="ti ti-pencil" aria-hidden="true" style="font-size:14px;color:#7C3AED;"></i>
+          </div>
+
+          <!-- Target amount -->
+          <p style="font-size:10px;color:#555;letter-spacing:0.04em;margin:0 0 5px;">TARGET AMOUNT (PKR)</p>
+          <div style="background:#161616;border:0.5px solid #2e2e2e;border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <span style="font-size:18px;font-weight:500;color:#22c55e;">1,30,000</span>
+            <i class="ti ti-calculator" aria-hidden="true" style="font-size:14px;color:#555;"></i>
+          </div>
+
+          <!-- Target date -->
+          <p style="font-size:10px;color:#555;letter-spacing:0.04em;margin:0 0 5px;">TARGET DATE</p>
+          <div style="background:#161616;border:0.5px solid #2e2e2e;border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <span style="font-size:13px;color:#e0e0e0;">March 2027</span>
+            <i class="ti ti-calendar" aria-hidden="true" style="font-size:14px;color:#7C3AED;"></i>
+          </div>
+
+          <!-- AI projection -->
+          <div style="background:#0d1a12;border:0.5px solid #1a3d22;border-radius:10px;padding:10px 13px;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px;">
+              <i class="ti ti-robot" aria-hidden="true" style="font-size:14px;color:#22c55e;"></i>
+              <span style="font-size:11px;font-weight:500;color:#22c55e;">FinPilot projection</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <span style="font-size:10px;color:#555;">Monthly needed</span>
+              <span style="font-size:11px;font-weight:500;color:#ddd;">Rs 4,100</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <span style="font-size:10px;color:#555;">% of your income</span>
+              <span style="font-size:11px;font-weight:500;color:#22c55e;">2.9% — very manageable</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="font-size:10px;color:#555;">Estimated completion</span>
+              <span style="font-size:11px;font-weight:500;color:#ddd;">Feb 2027 ✓</span>
+            </div>
+          </div>
+
+          <!-- Monthly contribution -->
+          <p style="font-size:10px;color:#555;letter-spacing:0.04em;margin:0 0 5px;">MONTHLY CONTRIBUTION (PKR)</p>
+          <div style="background:#161616;border:0.5px solid #2e2e2e;border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <span style="font-size:13px;color:#e0e0e0;">4,100 <span style="font-size:10px;color:#555;">(AI suggested)</span></span>
+            <i class="ti ti-adjustments" aria-hidden="true" style="font-size:14px;color:#555;"></i>
+          </div>
+
+          <div style="background:#22c55e;border-radius:13px;padding:14px 0;text-align:center;font-size:14px;font-weight:500;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:28px;">
+            <i class="ti ti-piggy-bank" aria-hidden="true"></i> Create goal
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel -->
+  <div class="panel">
+    <p class="ptitle">Design decisions</p>
+    <div class="pnote">
+      <p class="pnh">3-color status system</p>
+      <p class="pnb">On track = green, Behind = amber, At risk = red. Same semantic rules as the rest of the app. The border tint on each card reinforces the status without needing to read the badge.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh">AI recommendation strip first</p>
+      <p class="pnb">Before the user reads individual goals, the AI tells them the one number that matters — how much they can save comfortably this month and whether they're on track overall.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh">Monthly pace on every card</p>
+      <p class="pnb">"Save Rs 8,200/mo to hit target" is more actionable than a progress bar alone. When it turns red ("Rs 23,000/mo — too aggressive") the user immediately knows to extend the deadline.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh">AI projection in the add form</p>
+      <p class="pnb">As soon as the user enters a target amount and date, the AI card calculates the monthly needed and what % of income that is. Green = easy, amber = stretch, red = unrealistic.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh"><span class="sw" style="background:#22c55e"></span>Green CTA for goals</p>
+      <p class="pnb">The "Create goal" button is green — the only screen where the primary action isn't violet. Green here means saving/growth, keeping the semantic color rules consistent.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh">Icon picker for personality</p>
+      <p class="pnb">Letting users pick an icon makes goals feel personal and motivating — a plane for a trip, a shield for emergency fund. Small touch, big impact on engagement.</p>
+    </div>
+  </div>
+
+</div>

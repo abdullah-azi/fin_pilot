@@ -63,17 +63,6 @@ export default function AuthScreen() {
   const { error, isAuthenticated, isBootstrapping, isSubmitting, login, signup } = useAuth();
   const [mode, setMode] = useState<AuthMode>('login');
   const [showIntro, setShowIntro] = useState(true);
-  const [loginForm, setLoginForm] = useState<LoginFormState>({
-    email: '',
-    password: '',
-  });
-  const [signupForm, setSignupForm] = useState<SignupFormState>({
-    country: DEFAULT_SIGNUP_COUNTRY,
-    currency: DEFAULT_SIGNUP_CURRENCY,
-    email: '',
-    fullName: '',
-    password: '',
-  });
   const [localError, setLocalError] = useState<string | null>(null);
 
   const introOpacity = useRef(new Animated.Value(1)).current;
@@ -125,14 +114,8 @@ export default function AuthScreen() {
   }, [isAuthenticated, isBootstrapping, showIntro]);
 
   const displayError = localError ?? error;
-  const passwordStrength = useMemo(() => getPasswordStrength(signupForm.password), [signupForm.password]);
 
-  async function handleLoginSubmit() {
-    const payload: LoginPayload = {
-      email: loginForm.email.trim().toLowerCase(),
-      password: loginForm.password,
-    };
-
+  async function handleLoginSubmit(payload: LoginPayload) {
     const validationError = validateLogin(payload);
     if (validationError) {
       setLocalError(validationError);
@@ -149,15 +132,7 @@ export default function AuthScreen() {
     }
   }
 
-  async function handleSignupSubmit() {
-    const payload: SignupPayload = {
-      country: signupForm.country.trim() || null,
-      currency: signupForm.currency.trim().toUpperCase() || DEFAULT_SIGNUP_CURRENCY,
-      email: signupForm.email.trim().toLowerCase(),
-      full_name: signupForm.fullName.trim() || null,
-      password: signupForm.password,
-    };
-
+  async function handleSignupSubmit(payload: SignupPayload) {
     const validationError = validateSignup(payload);
     if (validationError) {
       setLocalError(validationError);
@@ -252,14 +227,8 @@ export default function AuthScreen() {
           {mode === 'signup' ? (
             <SignupForm
               apiBaseUrl={API_BASE_URL}
-              form={signupForm}
               isSubmitting={isSubmitting}
-              passwordStrength={passwordStrength}
-              onChange={(field, value) => {
-                setLocalError(null);
-                setSignupForm((current) => applySignupFieldChange(current, field, value));
-              }}
-              onSubmit={() => void handleSignupSubmit()}
+              onSubmit={(payload) => void handleSignupSubmit(payload)}
               onSwitchMode={() => {
                 setLocalError(null);
                 setMode('login');
@@ -268,13 +237,8 @@ export default function AuthScreen() {
           ) : (
             <LoginForm
               apiBaseUrl={API_BASE_URL}
-              form={loginForm}
               isSubmitting={isSubmitting}
-              onChange={(field, value) => {
-                setLocalError(null);
-                setLoginForm((current) => ({ ...current, [field]: value }));
-              }}
-              onSubmit={() => void handleLoginSubmit()}
+              onSubmit={(payload) => void handleLoginSubmit(payload)}
               onSwitchMode={() => {
                 setLocalError(null);
                 setMode('signup');
@@ -289,19 +253,18 @@ export default function AuthScreen() {
 
 function LoginForm({
   apiBaseUrl,
-  form,
   isSubmitting,
-  onChange,
   onSubmit,
   onSwitchMode,
 }: {
   apiBaseUrl: string;
-  form: LoginFormState;
   isSubmitting: boolean;
-  onChange: (field: keyof LoginFormState, value: string) => void;
-  onSubmit: () => void;
+  onSubmit: (payload: LoginPayload) => void;
   onSwitchMode: () => void;
 }) {
+  const emailRef = useRef('');
+  const passwordRef = useRef('');
+
   return (
     <View>
       <Field
@@ -312,8 +275,10 @@ function LoginForm({
         keyboardType="email-address"
         label="EMAIL"
         placeholder="you@example.com"
-        value={form.email}
-        onChangeText={(value) => onChange('email', value)}
+        initialValue=""
+        onValueChange={(value) => {
+          emailRef.current = value;
+        }}
       />
       <Field
         autoCapitalize="none"
@@ -323,15 +288,26 @@ function LoginForm({
         label="PASSWORD"
         placeholder="Enter your password"
         secureTextEntry
-        value={form.password}
-        onChangeText={(value) => onChange('password', value)}
+        initialValue=""
+        onValueChange={(value) => {
+          passwordRef.current = value;
+        }}
       />
 
       <Pressable>
         <Text style={styles.forgotPassword}>Forgot password?</Text>
       </Pressable>
 
-      <Pressable disabled={isSubmitting} onPress={onSubmit} style={styles.primaryButton}>
+      <Pressable
+        disabled={isSubmitting}
+        onPress={() =>
+          onSubmit({
+            email: emailRef.current.trim().toLowerCase(),
+            password: passwordRef.current,
+          })
+        }
+        style={styles.primaryButton}
+      >
         {isSubmitting ? (
           <ActivityIndicator color={AUTH_COLORS.text} />
         ) : (
@@ -359,21 +335,23 @@ function LoginForm({
 
 function SignupForm({
   apiBaseUrl,
-  form,
   isSubmitting,
-  passwordStrength,
-  onChange,
   onSubmit,
   onSwitchMode,
 }: {
   apiBaseUrl: string;
-  form: SignupFormState;
   isSubmitting: boolean;
-  passwordStrength: PasswordStrength;
-  onChange: (field: keyof SignupFormState, value: string) => void;
-  onSubmit: () => void;
+  onSubmit: (payload: SignupPayload) => void;
   onSwitchMode: () => void;
 }) {
+  const [country, setCountry] = useState<SignupCountryOption>(DEFAULT_SIGNUP_COUNTRY);
+  const [currency, setCurrency] = useState<SignupCurrencyOption>(DEFAULT_SIGNUP_CURRENCY);
+  const [passwordValue, setPasswordValue] = useState('');
+  const fullNameRef = useRef('');
+  const emailRef = useRef('');
+  const passwordRef = useRef('');
+  const passwordStrength = useMemo(() => getPasswordStrength(passwordValue), [passwordValue]);
+
   return (
     <View>
       <Field
@@ -383,8 +361,10 @@ function SignupForm({
         icon="user-o"
         label="FULL NAME"
         placeholder="Ahmed Khan"
-        value={form.fullName}
-        onChangeText={(value) => onChange('fullName', value)}
+        initialValue=""
+        onValueChange={(value) => {
+          fullNameRef.current = value;
+        }}
       />
       <Field
         autoCapitalize="none"
@@ -394,8 +374,10 @@ function SignupForm({
         keyboardType="email-address"
         label="EMAIL"
         placeholder="you@example.com"
-        value={form.email}
-        onChangeText={(value) => onChange('email', value)}
+        initialValue=""
+        onValueChange={(value) => {
+          emailRef.current = value;
+        }}
       />
       <Field
         autoCapitalize="none"
@@ -405,8 +387,11 @@ function SignupForm({
         label="PASSWORD"
         placeholder="At least 8 characters"
         secureTextEntry
-        value={form.password}
-        onChangeText={(value) => onChange('password', value)}
+        initialValue=""
+        onValueChange={(value) => {
+          passwordRef.current = value;
+          setPasswordValue(value);
+        }}
       />
       <View style={styles.inlineFields}>
         <View style={styles.inlineField}>
@@ -414,8 +399,11 @@ function SignupForm({
             icon="money"
             label="CURRENCY"
             options={CURRENCY_OPTIONS}
-            value={form.currency}
-            onSelect={(value) => onChange('currency', value)}
+            value={currency}
+            onSelect={(value) => {
+              setCurrency(value);
+              setCountry(CURRENCY_TO_COUNTRY[value] ?? country);
+            }}
           />
         </View>
         <View style={styles.inlineField}>
@@ -423,8 +411,11 @@ function SignupForm({
             icon="globe"
             label="COUNTRY"
             options={COUNTRY_OPTIONS}
-            value={form.country}
-            onSelect={(value) => onChange('country', value)}
+            value={country}
+            onSelect={(value) => {
+              setCountry(value);
+              setCurrency(COUNTRY_TO_CURRENCY[value] ?? currency);
+            }}
           />
         </View>
       </View>
@@ -438,7 +429,19 @@ function SignupForm({
         {passwordStrength.copy}
       </Text>
 
-      <Pressable disabled={isSubmitting} onPress={onSubmit} style={[styles.primaryButton, styles.primaryButtonSpaced]}>
+      <Pressable
+        disabled={isSubmitting}
+        onPress={() =>
+          onSubmit({
+            country: country.trim() || null,
+            currency: currency.trim().toUpperCase() || DEFAULT_SIGNUP_CURRENCY,
+            email: emailRef.current.trim().toLowerCase(),
+            full_name: fullNameRef.current.trim() || null,
+            password: passwordRef.current,
+          })
+        }
+        style={[styles.primaryButton, styles.primaryButtonSpaced]}
+      >
         {isSubmitting ? (
           <ActivityIndicator color={AUTH_COLORS.text} />
         ) : (
@@ -470,14 +473,18 @@ function SignupForm({
 
 function Field({
   icon,
+  initialValue = '',
   label,
-  value,
-  onChangeText,
+  onValueChange,
   ...inputProps
-}: React.ComponentProps<typeof TextInput> & {
+}: Omit<React.ComponentProps<typeof TextInput>, 'onChangeText' | 'value'> & {
   icon: React.ComponentProps<typeof FontAwesome>['name'];
+  initialValue?: string;
   label: string;
+  onValueChange?: (value: string) => void;
 }) {
+  const [value, setValue] = useState(initialValue);
+
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -489,7 +496,10 @@ function Field({
           style={styles.fieldValue}
           textContentType="none"
           value={value}
-          onChangeText={onChangeText}
+          onChangeText={(nextValue) => {
+            setValue(nextValue);
+            onValueChange?.(nextValue);
+          }}
           {...inputProps}
         />
         <FontAwesome color={value ? AUTH_COLORS.violetBright : AUTH_COLORS.textSoft} name={icon} size={14} />
@@ -640,35 +650,6 @@ function validateSignup(payload: SignupPayload) {
   }
 
   return null;
-}
-
-function applySignupFieldChange(
-  current: SignupFormState,
-  field: keyof SignupFormState,
-  value: string,
-): SignupFormState {
-  if (field === 'country') {
-    const nextCountry = value as SignupCountryOption;
-    return {
-      ...current,
-      country: nextCountry,
-      currency: COUNTRY_TO_CURRENCY[nextCountry] ?? current.currency,
-    };
-  }
-
-  if (field === 'currency') {
-    const nextCurrency = value.toUpperCase() as SignupCurrencyOption;
-    return {
-      ...current,
-      currency: nextCurrency,
-      country: CURRENCY_TO_COUNTRY[nextCurrency] ?? current.country,
-    };
-  }
-
-  return {
-    ...current,
-    [field]: value,
-  };
 }
 
 type PasswordStrength = {

@@ -1,0 +1,467 @@
+
+<style>
+  .pw{display:flex;justify-content:center;gap:26px;padding:2rem 0;flex-wrap:wrap;align-items:flex-start;}
+  .phone{width:295px;border-radius:44px;border:1.5px solid #2e2e2e;overflow:hidden;background:#0e0e0e;}
+  .notch{width:88px;height:26px;background:#0e0e0e;border-radius:0 0 16px 16px;margin:0 auto;border:1.5px solid #2e2e2e;border-top:none;}
+  .screen{background:#0e0e0e;padding:0;}
+
+  .hdr{padding:14px 18px 12px;border-bottom:0.5px solid #1e1e1e;}
+  .hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .hdr-title{font-size:16px;font-weight:500;color:#f0f0f0;margin:0;}
+  .hdr-icons{display:flex;gap:10px;align-items:center;}
+  .hdr-ic{font-size:20px;color:#555;}
+
+  .period-row{display:flex;gap:5px;}
+  .pchip{flex:1;text-align:center;padding:6px 0;border-radius:8px;font-size:10px;font-weight:500;background:#161616;border:0.5px solid #272727;color:#555;}
+  .pchip.sel{background:#1a1525;border-color:#7C3AED;color:#9b72f5;}
+
+  .body{padding:14px 14px 0;}
+
+  .net-hero{background:#161616;border:0.5px solid #272727;border-radius:13px;padding:14px 15px;margin-bottom:13px;}
+  .net-month{font-size:10px;color:#555;margin:0 0 4px;letter-spacing:0.04em;}
+  .net-amount{font-size:28px;font-weight:500;color:#22c55e;margin:0 0 12px;letter-spacing:-0.5px;}
+  .net-row{display:grid;grid-template-columns:1fr 0.5px 1fr;gap:0;margin-bottom:10px;}
+  .net-col{padding:0 10px;}
+  .net-col:first-child{padding-left:0;}
+  .net-divider{background:#272727;}
+  .net-label{font-size:9px;color:#555;margin:0 0 2px;display:flex;align-items:center;gap:3px;}
+  .net-val{font-size:13px;font-weight:500;margin:0;}
+  .net-sub{font-size:9px;color:#555;margin:2px 0 0;}
+  .net-bar-row{display:flex;height:5px;border-radius:3px;overflow:hidden;gap:2px;}
+  .net-bar-in{background:#22c55e;border-radius:3px;}
+  .net-bar-out{background:#ef4444;border-radius:3px;}
+
+  .section-head{display:flex;justify-content:space-between;align-items:center;margin:0 0 8px;}
+  .sh-title{font-size:12px;font-weight:500;color:#bbb;margin:0;}
+  .sh-link{font-size:10px;color:#7C3AED;}
+
+  .chart-card{background:#161616;border:0.5px solid #272727;border-radius:12px;padding:12px 13px;margin-bottom:13px;}
+  .chart-legend{display:flex;gap:12px;margin-bottom:10px;}
+  .leg-item{display:flex;align-items:center;gap:5px;font-size:10px;color:#888;}
+  .leg-dot{width:7px;height:7px;border-radius:50%;}
+
+  .bar-group-chart{display:flex;align-items:flex-end;gap:4px;height:80px;padding-bottom:0;}
+  .bar-month-group{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;}
+  .bar-pair{display:flex;align-items:flex-end;gap:2px;flex:1;width:100%;}
+  .bar-in{border-radius:3px 3px 0 0;background:#22c55e;flex:1;}
+  .bar-out{border-radius:3px 3px 0 0;background:#ef4444;flex:1;}
+  .bar-out.curr{background:#ef4444;}
+  .bar-in.curr{background:#22c55e;}
+  .bm-label{font-size:8px;color:#555;}
+  .bm-label.curr{color:#9b72f5;font-weight:500;}
+
+  .month-cards{display:flex;flex-direction:column;gap:7px;margin-bottom:13px;}
+  .month-card{background:#161616;border:0.5px solid #272727;border-radius:11px;padding:10px 12px;}
+  .mc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;}
+  .mc-month{font-size:12px;font-weight:500;color:#ddd;margin:0;}
+  .mc-net{font-size:12px;font-weight:500;}
+  .mc-bars{display:flex;flex-direction:column;gap:4px;}
+  .mc-bar-row{display:flex;align-items:center;gap:7px;}
+  .mc-bar-label{font-size:9px;color:#555;width:28px;}
+  .mc-bar-bg{flex:1;height:3px;background:#272727;border-radius:2px;}
+  .mc-bar-fill{height:3px;border-radius:2px;}
+  .mc-bar-val{font-size:9px;font-weight:500;width:42px;text-align:right;}
+
+  .category-table{background:#161616;border:0.5px solid #272727;border-radius:12px;overflow:hidden;margin-bottom:13px;}
+  .ct-hdr{display:grid;grid-template-columns:1fr 60px 60px;padding:8px 12px;border-bottom:0.5px solid #272727;}
+  .ct-hdr-label{font-size:9px;color:#555;font-weight:500;letter-spacing:0.04em;}
+  .ct-row{display:grid;grid-template-columns:1fr 60px 60px;padding:8px 12px;border-bottom:0.5px solid #1e1e1e;align-items:center;}
+  .ct-row:last-child{border-bottom:none;}
+  .ct-name-wrap{display:flex;align-items:center;gap:7px;}
+  .ct-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .ct-name{font-size:11px;color:#ddd;}
+  .ct-amt{font-size:11px;font-weight:500;color:#ef4444;text-align:right;}
+  .ct-vs{font-size:10px;text-align:right;}
+
+  .export-row{display:flex;gap:7px;margin-bottom:16px;}
+  .exp-btn{flex:1;background:#161616;border:0.5px solid #272727;border-radius:10px;padding:10px 0;display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .exp-btn-icon{font-size:18px;color:#7C3AED;}
+  .exp-btn-label{font-size:10px;color:#888;}
+
+  .nb{display:flex;background:#161616;border-top:0.5px solid #272727;padding:8px 0 12px;}
+  .ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .ni-ic{font-size:19px;color:#444;}
+  .ni.active .ni-ic{color:#7C3AED;}
+  .ni-lb{font-size:8px;color:#444;}
+  .ni.active .ni-lb{color:#9b72f5;font-weight:500;}
+  .nd{width:3px;height:3px;border-radius:50%;background:#7C3AED;margin:0 auto;}
+
+  .slabel{text-align:center;font-size:11px;color:#555;padding:10px 0 4px;}
+  .panel{max-width:210px;padding-top:0.5rem;}
+  .ptitle{font-size:13px;font-weight:500;color:var(--color-text-primary);margin:0 0 14px;}
+  .pnote{background:var(--color-background-secondary);border-radius:10px;padding:10px 12px;margin-bottom:10px;}
+  .pnh{font-size:11px;font-weight:500;color:var(--color-text-primary);margin:0 0 3px;}
+  .pnb{font-size:11px;color:var(--color-text-secondary);margin:0;line-height:1.5;}
+  .sw{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;}
+</style>
+
+<h2 class="sr-only">FinPilot reports screen showing monthly summary, income vs expense bar chart, month-by-month breakdown, category table, and export options</h2>
+
+<div class="pw">
+
+  <!-- Screen 1: Monthly overview + chart -->
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <p class="slabel">Monthly overview</p>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+
+        <div class="hdr">
+          <div class="hdr-top">
+            <p class="hdr-title">Reports</p>
+            <div class="hdr-icons">
+              <i class="ti ti-download hdr-ic" aria-hidden="true"></i>
+              <i class="ti ti-share hdr-ic" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="period-row">
+            <div class="pchip">Jan</div>
+            <div class="pchip">Feb</div>
+            <div class="pchip">Mar</div>
+            <div class="pchip">Apr</div>
+            <div class="pchip sel">May</div>
+            <div class="pchip">Q1</div>
+            <div class="pchip">1Y</div>
+          </div>
+        </div>
+
+        <div class="body">
+
+          <!-- Net hero card -->
+          <div class="net-hero">
+            <p class="net-month">MAY 2026 — NET SAVED</p>
+            <p class="net-amount">+Rs 84,320</p>
+            <div class="net-row">
+              <div class="net-col">
+                <p class="net-label"><i class="ti ti-arrow-down" aria-hidden="true" style="font-size:10px;color:#22c55e"></i> Total income</p>
+                <p class="net-val" style="color:#22c55e">Rs 1,40,000</p>
+                <p class="net-sub">Salary + freelance</p>
+              </div>
+              <div class="net-divider"></div>
+              <div class="net-col">
+                <p class="net-label"><i class="ti ti-arrow-up" aria-hidden="true" style="font-size:10px;color:#ef4444"></i> Total spent</p>
+                <p class="net-val" style="color:#ef4444">Rs 55,680</p>
+                <p class="net-sub">Across 47 transactions</p>
+              </div>
+            </div>
+            <div class="net-bar-row">
+              <div class="net-bar-in" style="flex:71.5"></div>
+              <div class="net-bar-out" style="flex:28.5"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:4px;">
+              <span style="font-size:9px;color:#4a8c5c;">71.5% retained</span>
+              <span style="font-size:9px;color:#a05050;">28.5% spent</span>
+            </div>
+          </div>
+
+          <!-- Income vs Expense bar chart -->
+          <div class="section-head">
+            <p class="sh-title">Income vs expense</p>
+          </div>
+          <div class="chart-card">
+            <div class="chart-legend">
+              <div class="leg-item"><div class="leg-dot" style="background:#22c55e"></div>Income</div>
+              <div class="leg-item"><div class="leg-dot" style="background:#ef4444"></div>Expenses</div>
+            </div>
+            <div class="bar-group-chart">
+              <div class="bar-month-group">
+                <div class="bar-pair" style="height:56px;">
+                  <div class="bar-in" style="height:52px;opacity:0.4;"></div>
+                  <div class="bar-out" style="height:42px;opacity:0.4;"></div>
+                </div>
+                <span class="bm-label">Feb</span>
+              </div>
+              <div class="bar-month-group">
+                <div class="bar-pair" style="height:56px;">
+                  <div class="bar-in" style="height:56px;opacity:0.4;"></div>
+                  <div class="bar-out" style="height:48px;opacity:0.4;"></div>
+                </div>
+                <span class="bm-label">Mar</span>
+              </div>
+              <div class="bar-month-group">
+                <div class="bar-pair" style="height:56px;">
+                  <div class="bar-in" style="height:54px;opacity:0.4;"></div>
+                  <div class="bar-out" style="height:44px;opacity:0.4;"></div>
+                </div>
+                <span class="bm-label">Apr</span>
+              </div>
+              <div class="bar-month-group">
+                <div class="bar-pair" style="height:56px;">
+                  <div class="bar-in curr" style="height:56px;"></div>
+                  <div class="bar-out curr" style="height:34px;"></div>
+                </div>
+                <span class="bm-label curr">May</span>
+              </div>
+              <div class="bar-month-group">
+                <div class="bar-pair" style="height:56px;">
+                  <div style="flex:1;border:0.5px dashed #2e2e2e;border-radius:3px;height:20px;align-self:flex-end;"></div>
+                  <div style="flex:1;border:0.5px dashed #2e2e2e;border-radius:3px;height:14px;align-self:flex-end;"></div>
+                </div>
+                <span class="bm-label">Jun</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Savings rate highlight -->
+          <div style="background:#0d1a12;border:0.5px solid #1a3d22;border-radius:11px;padding:10px 13px;margin-bottom:13px;display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <p style="font-size:10px;color:#555;margin:0 0 2px;">Savings rate this month</p>
+              <p style="font-size:18px;font-weight:500;color:#22c55e;margin:0;">60.2% <span style="font-size:10px;color:#4a8c5c;font-weight:400;">↑ vs 54% last mo</span></p>
+            </div>
+            <div style="width:44px;height:44px;border-radius:50%;border:3px solid #22c55e;display:flex;align-items:center;justify-content:center;position:relative;">
+              <span style="font-size:11px;font-weight:500;color:#22c55e;">60%</span>
+            </div>
+          </div>
+
+          <!-- Month-by-month breakdown -->
+          <div class="section-head">
+            <p class="sh-title">Month breakdown</p>
+            <span class="sh-link">Full year</span>
+          </div>
+          <div class="month-cards">
+            <div class="month-card">
+              <div class="mc-top">
+                <p class="mc-month">May 2026</p>
+                <span class="mc-net" style="color:#22c55e">+Rs 84,320</span>
+              </div>
+              <div class="mc-bars">
+                <div class="mc-bar-row">
+                  <span class="mc-bar-label" style="color:#22c55e;">In</span>
+                  <div class="mc-bar-bg"><div class="mc-bar-fill" style="width:100%;background:#22c55e;"></div></div>
+                  <span class="mc-bar-val" style="color:#22c55e;">1,40,000</span>
+                </div>
+                <div class="mc-bar-row">
+                  <span class="mc-bar-label" style="color:#ef4444;">Out</span>
+                  <div class="mc-bar-bg"><div class="mc-bar-fill" style="width:40%;background:#ef4444;"></div></div>
+                  <span class="mc-bar-val" style="color:#ef4444;">55,680</span>
+                </div>
+              </div>
+            </div>
+            <div class="month-card">
+              <div class="mc-top">
+                <p class="mc-month">April 2026</p>
+                <span class="mc-net" style="color:#22c55e">+Rs 76,400</span>
+              </div>
+              <div class="mc-bars">
+                <div class="mc-bar-row">
+                  <span class="mc-bar-label" style="color:#22c55e;">In</span>
+                  <div class="mc-bar-bg"><div class="mc-bar-fill" style="width:90%;background:#22c55e;"></div></div>
+                  <span class="mc-bar-val" style="color:#22c55e;">1,40,000</span>
+                </div>
+                <div class="mc-bar-row">
+                  <span class="mc-bar-label" style="color:#ef4444;">Out</span>
+                  <div class="mc-bar-bg"><div class="mc-bar-fill" style="width:46%;background:#ef4444;"></div></div>
+                  <span class="mc-bar-val" style="color:#ef4444;">63,600</span>
+                </div>
+              </div>
+            </div>
+            <div class="month-card">
+              <div class="mc-top">
+                <p class="mc-month">March 2026</p>
+                <span class="mc-net" style="color:#22c55e">+Rs 68,200</span>
+              </div>
+              <div class="mc-bars">
+                <div class="mc-bar-row">
+                  <span class="mc-bar-label" style="color:#22c55e;">In</span>
+                  <div class="mc-bar-bg"><div class="mc-bar-fill" style="width:87%;background:#22c55e;"></div></div>
+                  <span class="mc-bar-val" style="color:#22c55e;">1,20,000</span>
+                </div>
+                <div class="mc-bar-row">
+                  <span class="mc-bar-label" style="color:#ef4444;">Out</span>
+                  <div class="mc-bar-bg"><div class="mc-bar-fill" style="width:36%;background:#ef4444;"></div></div>
+                  <span class="mc-bar-val" style="color:#ef4444;">51,800</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="nb">
+          <div class="ni"><i class="ti ti-home ni-ic" aria-hidden="true"></i><span class="ni-lb">Home</span></div>
+          <div class="ni"><i class="ti ti-list ni-ic" aria-hidden="true"></i><span class="ni-lb">Transactions</span></div>
+          <div class="ni"><i class="ti ti-robot ni-ic" aria-hidden="true"></i><span class="ni-lb">Ask AI</span></div>
+          <div class="ni active"><i class="ti ti-chart-pie ni-ic" aria-hidden="true"></i><span class="ni-lb">Insights</span><div class="nd"></div></div>
+          <div class="ni"><i class="ti ti-user ni-ic" aria-hidden="true"></i><span class="ni-lb">Profile</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: Category table + export -->
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <p class="slabel">Category table + export</p>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+
+        <div class="hdr">
+          <div class="hdr-top">
+            <p class="hdr-title">Reports</p>
+            <div class="hdr-icons">
+              <i class="ti ti-download hdr-ic" aria-hidden="true"></i>
+              <i class="ti ti-share hdr-ic" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="period-row">
+            <div class="pchip">Jan</div>
+            <div class="pchip">Feb</div>
+            <div class="pchip">Mar</div>
+            <div class="pchip">Apr</div>
+            <div class="pchip sel">May</div>
+            <div class="pchip">Q1</div>
+            <div class="pchip">1Y</div>
+          </div>
+        </div>
+
+        <div class="body">
+
+          <!-- Category spending table -->
+          <div class="section-head">
+            <p class="sh-title">Spending by category</p>
+            <span class="sh-link">Sort ↕</span>
+          </div>
+          <div class="category-table">
+            <div class="ct-hdr">
+              <span class="ct-hdr-label">CATEGORY</span>
+              <span class="ct-hdr-label" style="text-align:right;">AMOUNT</span>
+              <span class="ct-hdr-label" style="text-align:right;">VS LAST</span>
+            </div>
+            <div class="ct-row">
+              <div class="ct-name-wrap"><div class="ct-dot" style="background:#f59e0b"></div><span class="ct-name">Food</span></div>
+              <span class="ct-amt">18,400</span>
+              <span class="ct-vs" style="color:#ef4444;">↑ 28%</span>
+            </div>
+            <div class="ct-row">
+              <div class="ct-name-wrap"><div class="ct-dot" style="background:#6366f1"></div><span class="ct-name">Transport</span></div>
+              <span class="ct-amt">9,200</span>
+              <span class="ct-vs" style="color:#22c55e;">↓ 5%</span>
+            </div>
+            <div class="ct-row">
+              <div class="ct-name-wrap"><div class="ct-dot" style="background:#ef4444"></div><span class="ct-name">Health</span></div>
+              <span class="ct-amt">6,100</span>
+              <span class="ct-vs" style="color:#ef4444;">↑ 12%</span>
+            </div>
+            <div class="ct-row">
+              <div class="ct-name-wrap"><div class="ct-dot" style="background:#7C3AED"></div><span class="ct-name">Subscriptions</span></div>
+              <span class="ct-amt">4,800</span>
+              <span class="ct-vs" style="color:#888;">→ 0%</span>
+            </div>
+            <div class="ct-row">
+              <div class="ct-name-wrap"><div class="ct-dot" style="background:#22c55e"></div><span class="ct-name">Education</span></div>
+              <span class="ct-amt">3,900</span>
+              <span class="ct-vs" style="color:#22c55e;">↓ 8%</span>
+            </div>
+            <div class="ct-row">
+              <div class="ct-name-wrap"><div class="ct-dot" style="background:#888"></div><span class="ct-name">Utilities</span></div>
+              <span class="ct-amt">3,200</span>
+              <span class="ct-vs" style="color:#888;">→ 0%</span>
+            </div>
+            <div class="ct-row">
+              <div class="ct-name-wrap"><div class="ct-dot" style="background:#444"></div><span class="ct-name">Others</span></div>
+              <span class="ct-amt">10,080</span>
+              <span class="ct-vs" style="color:#ef4444;">↑ 9%</span>
+            </div>
+          </div>
+
+          <!-- Top transaction -->
+          <div class="section-head">
+            <p class="sh-title">Largest transactions</p>
+            <span class="sh-link">All</span>
+          </div>
+          <div style="background:#161616;border:0.5px solid #272727;border-radius:12px;overflow:hidden;margin-bottom:13px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:0.5px solid #1e1e1e;">
+              <div style="width:30px;height:30px;border-radius:8px;background:#131520;display:flex;align-items:center;justify-content:center;"><i class="ti ti-device-laptop" aria-hidden="true" style="font-size:14px;color:#6366f1;"></i></div>
+              <div style="flex:1;"><p style="font-size:11px;font-weight:500;color:#ddd;margin:0 0 1px;">Laptop down payment</p><p style="font-size:9px;color:#555;margin:0;">Savings · May 3</p></div>
+              <span style="font-size:12px;font-weight:500;color:#ef4444;">−Rs 15,000</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:0.5px solid #1e1e1e;">
+              <div style="width:30px;height:30px;border-radius:8px;background:#1f1a0e;display:flex;align-items:center;justify-content:center;"><i class="ti ti-building-store" aria-hidden="true" style="font-size:14px;color:#f59e0b;"></i></div>
+              <div style="flex:1;"><p style="font-size:11px;font-weight:500;color:#ddd;margin:0 0 1px;">Imtiaz Superstore</p><p style="font-size:9px;color:#555;margin:0;">Groceries · May 14</p></div>
+              <span style="font-size:12px;font-weight:500;color:#ef4444;">−Rs 5,400</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;">
+              <div style="width:30px;height:30px;border-radius:8px;background:#1a100e;display:flex;align-items:center;justify-content:center;"><i class="ti ti-heart" aria-hidden="true" style="font-size:14px;color:#ef4444;"></i></div>
+              <div style="flex:1;"><p style="font-size:11px;font-weight:500;color:#ddd;margin:0 0 1px;">Shifa Hospital</p><p style="font-size:9px;color:#555;margin:0;">Health · May 9</p></div>
+              <span style="font-size:12px;font-weight:500;color:#ef4444;">−Rs 4,200</span>
+            </div>
+          </div>
+
+          <!-- Export options -->
+          <div class="section-head">
+            <p class="sh-title">Export report</p>
+          </div>
+          <div class="export-row">
+            <div class="exp-btn">
+              <i class="ti ti-file-type-pdf exp-btn-icon" aria-hidden="true"></i>
+              <span class="exp-btn-label">PDF</span>
+            </div>
+            <div class="exp-btn">
+              <i class="ti ti-table exp-btn-icon" aria-hidden="true"></i>
+              <span class="exp-btn-label">CSV</span>
+            </div>
+            <div class="exp-btn">
+              <i class="ti ti-brand-whatsapp exp-btn-icon" aria-hidden="true"></i>
+              <span class="exp-btn-label">Share</span>
+            </div>
+            <div class="exp-btn">
+              <i class="ti ti-mail exp-btn-icon" aria-hidden="true"></i>
+              <span class="exp-btn-label">Email</span>
+            </div>
+          </div>
+
+          <div style="background:#1a1525;border:0.5px solid #3d2f6a;border-radius:10px;padding:10px 13px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <i class="ti ti-robot" aria-hidden="true" style="font-size:16px;color:#7C3AED;"></i>
+              <span style="font-size:11px;color:#9b72f5;">Ask AI about this month's report</span>
+            </div>
+            <i class="ti ti-chevron-right" aria-hidden="true" style="font-size:14px;color:#7C3AED;"></i>
+          </div>
+
+        </div>
+
+        <div class="nb">
+          <div class="ni"><i class="ti ti-home ni-ic" aria-hidden="true"></i><span class="ni-lb">Home</span></div>
+          <div class="ni"><i class="ti ti-list ni-ic" aria-hidden="true"></i><span class="ni-lb">Transactions</span></div>
+          <div class="ni"><i class="ti ti-robot ni-ic" aria-hidden="true"></i><span class="ni-lb">Ask AI</span></div>
+          <div class="ni active"><i class="ti ti-chart-pie ni-ic" aria-hidden="true"></i><span class="ni-lb">Insights</span><div class="nd"></div></div>
+          <div class="ni"><i class="ti ti-user ni-ic" aria-hidden="true"></i><span class="ni-lb">Profile</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel -->
+  <div class="panel">
+    <p class="ptitle">Design decisions</p>
+    <div class="pnote">
+      <p class="pnh">Net hero card leads</p>
+      <p class="pnb">The month's net saved is the headline number — bigger than income or expenses alone. The split income/expense bar below it shows the ratio visually before the user reads a single figure.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh">Savings rate ring</p>
+      <p class="pnb">60.2% saved this month with a circular progress ring — the single most motivating number in the report. Comparing to last month (54%) gives it context without clutter.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh">Grouped bar chart — current highlighted</p>
+      <p class="pnb">Past months are faded; May is full-brightness; June is dashed outline. The user always knows where they are in time without a legend or axis label.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh">Category table with VS LAST column</p>
+      <p class="pnb">The third column (↑↓→ vs last month) makes the table scannable in seconds. Red/green arrows are more readable than percentage numbers alone.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh">Largest transactions</p>
+      <p class="pnb">Reports should answer "where did the big money go?" The top 3 transactions answer that without requiring the user to scroll through all 47 entries.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh">4 export options</p>
+      <p class="pnb">PDF for sharing with a financial advisor, CSV for personal spreadsheets, WhatsApp for sharing with family, Email for records. All four are common real-world needs in the target market.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh">Ask AI shortcut</p>
+      <p class="pnb">Same pattern as spending analysis — after reading the report, the natural next question is "so what should I do differently?" The violet card bridges straight to the assistant.</p>
+    </div>
+  </div>
+
+</div>

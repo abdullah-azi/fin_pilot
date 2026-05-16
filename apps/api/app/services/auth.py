@@ -14,7 +14,7 @@ from app.models.user_session import UserSession
 from app.schemas.auth import LoginRequest, RefreshRequest, TokenPair
 from app.schemas.user import UserCreate
 from app.services.categories import seed_default_categories
-from app.services.users import create_user, get_user_or_404
+from app.services.users import create_user, get_user_or_404, normalize_email
 
 
 @dataclass
@@ -30,8 +30,9 @@ def signup(db: Session, payload: UserCreate) -> AuthResult:
 
 
 def login(db: Session, payload: LoginRequest) -> AuthResult:
+    normalized_email = normalize_email(str(payload.email))
     user = db.scalar(
-        select(User).options(selectinload(User.preferences)).where(User.email == str(payload.email))
+        select(User).options(selectinload(User.preferences)).where(User.email == normalized_email)
     )
     if not user or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(

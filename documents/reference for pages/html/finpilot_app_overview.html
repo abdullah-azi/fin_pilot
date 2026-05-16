@@ -1,0 +1,147 @@
+
+<style>
+  .section-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-tertiary); margin: 0 0 10px; }
+  .screen-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 24px; }
+  .screen-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: 10px; padding: 10px 12px; cursor: pointer; transition: border-color 0.15s; }
+  .screen-card:hover { border-color: var(--color-border-secondary); }
+  .screen-icon { font-size: 18px; margin-bottom: 6px; }
+  .screen-name { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 2px; }
+  .screen-desc { font-size: 11px; color: var(--color-text-secondary); margin: 0; line-height: 1.4; }
+  .screen-badge { display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-top: 5px; font-weight: 500; }
+  .badge-core { background: #E1F5EE; color: #0F6E56; }
+  .badge-ai { background: #EEEDFE; color: #3C3489; }
+  .badge-data { background: #FAEEDA; color: #854F0B; }
+  .swatch-row { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+  .swatch { border-radius: 8px; padding: 10px 14px; font-size: 12px; font-weight: 500; flex: 1; min-width: 100px; }
+  .nav-bar { display: flex; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: 14px; padding: 8px 4px; gap: 0; margin-bottom: 24px; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 4px; border-radius: 10px; cursor: pointer; }
+  .nav-item.active { background: var(--color-background-secondary); }
+  .nav-icon { font-size: 20px; }
+  .nav-label { font-size: 10px; font-weight: 500; color: var(--color-text-secondary); }
+  .nav-item.active .nav-label { color: var(--color-text-primary); }
+  .arch-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .arch-card { background: var(--color-background-secondary); border-radius: 8px; padding: 10px 12px; }
+  .arch-title { font-size: 12px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 4px; }
+  .arch-body { font-size: 11px; color: var(--color-text-secondary); margin: 0; line-height: 1.5; }
+  .divider { border: none; border-top: 0.5px solid var(--color-border-tertiary); margin: 20px 0; }
+</style>
+
+<h2 class="sr-only">FinPilot app structure overview: screens, color scheme, navigation, and layout notes</h2>
+
+<p class="section-label">9 screens · MVP scope</p>
+<div class="screen-grid">
+  <div class="screen-card">
+    <div class="screen-icon"><i class="ti ti-lock" aria-hidden="true"></i></div>
+    <p class="screen-name">Auth</p>
+    <p class="screen-desc">Sign up, log in, onboarding</p>
+    <span class="screen-badge badge-core">Core</span>
+  </div>
+  <div class="screen-card">
+    <div class="screen-icon"><i class="ti ti-home" aria-hidden="true"></i></div>
+    <p class="screen-name">Dashboard</p>
+    <p class="screen-desc">Balance, quick stats, AI prompt</p>
+    <span class="screen-badge badge-core">Core</span>
+  </div>
+  <div class="screen-card">
+    <div class="screen-icon"><i class="ti ti-plus" aria-hidden="true"></i></div>
+    <p class="screen-name">Add transaction</p>
+    <p class="screen-desc">Income or expense entry</p>
+    <span class="screen-badge badge-core">Core</span>
+  </div>
+  <div class="screen-card">
+    <div class="screen-icon"><i class="ti ti-list" aria-hidden="true"></i></div>
+    <p class="screen-name">History</p>
+    <p class="screen-desc">All transactions, filterable</p>
+    <span class="screen-badge badge-core">Core</span>
+  </div>
+  <div class="screen-card">
+    <div class="screen-icon"><i class="ti ti-robot" aria-hidden="true"></i></div>
+    <p class="screen-name">AI assistant</p>
+    <p class="screen-desc">Can I afford this? chat</p>
+    <span class="screen-badge badge-ai">AI</span>
+  </div>
+  <div class="screen-card">
+    <div class="screen-icon"><i class="ti ti-chart-pie" aria-hidden="true"></i></div>
+    <p class="screen-name">Spending analysis</p>
+    <p class="screen-desc">Category breakdown, habits</p>
+    <span class="screen-badge badge-ai">AI</span>
+  </div>
+  <div class="screen-card">
+    <div class="screen-icon"><i class="ti ti-piggy-bank" aria-hidden="true"></i></div>
+    <p class="screen-name">Savings goals</p>
+    <p class="screen-desc">Targets, progress, suggestions</p>
+    <span class="screen-badge badge-ai">AI</span>
+  </div>
+  <div class="screen-card">
+    <div class="screen-icon"><i class="ti ti-chart-bar" aria-hidden="true"></i></div>
+    <p class="screen-name">Reports</p>
+    <p class="screen-desc">Monthly summary, charts</p>
+    <span class="screen-badge badge-data">Data</span>
+  </div>
+  <div class="screen-card">
+    <div class="screen-icon"><i class="ti ti-settings" aria-hidden="true"></i></div>
+    <p class="screen-name">Settings</p>
+    <p class="screen-desc">Profile, categories, prefs</p>
+    <span class="screen-badge badge-core">Core</span>
+  </div>
+</div>
+
+<hr class="divider">
+
+<p class="section-label">Color scheme</p>
+<div class="swatch-row">
+  <div class="swatch" style="background:#1D9E75; color:#04342C;">Teal — primary<br><span style="opacity:0.7;font-weight:400">Actions, brand</span></div>
+  <div class="swatch" style="background:#E1F5EE; color:#085041; border: 0.5px solid #9FE1CB;">Teal light<br><span style="opacity:0.7;font-weight:400">Positive states</span></div>
+  <div class="swatch" style="background:#BA7517; color:#412402;">Amber<br><span style="opacity:0.7;font-weight:400">Spending alerts</span></div>
+  <div class="swatch" style="background:#D85A30; color:#4A1B0C;">Coral<br><span style="opacity:0.7;font-weight:400">Overspending</span></div>
+  <div class="swatch" style="background:#639922; color:#173404;">Green<br><span style="opacity:0.7;font-weight:400">Savings wins</span></div>
+  <div class="swatch" style="background:#888780; color:#2C2C2A;">Gray<br><span style="opacity:0.7;font-weight:400">Neutral UI</span></div>
+</div>
+
+<hr class="divider">
+
+<p class="section-label">Bottom navigation (5 tabs)</p>
+<div class="nav-bar">
+  <div class="nav-item active">
+    <i class="ti ti-home nav-icon" aria-hidden="true"></i>
+    <span class="nav-label">Home</span>
+  </div>
+  <div class="nav-item">
+    <i class="ti ti-list nav-icon" aria-hidden="true"></i>
+    <span class="nav-label">Transactions</span>
+  </div>
+  <div class="nav-item">
+    <i class="ti ti-robot nav-icon" aria-hidden="true"></i>
+    <span class="nav-label">Ask AI</span>
+  </div>
+  <div class="nav-item">
+    <i class="ti ti-chart-pie nav-icon" aria-hidden="true"></i>
+    <span class="nav-label">Insights</span>
+  </div>
+  <div class="nav-item">
+    <i class="ti ti-user nav-icon" aria-hidden="true"></i>
+    <span class="nav-label">Profile</span>
+  </div>
+</div>
+
+<hr class="divider">
+
+<p class="section-label">Layout notes</p>
+<div class="arch-row">
+  <div class="arch-card">
+    <p class="arch-title">Dashboard header</p>
+    <p class="arch-body">Sticky card showing net balance, month income vs expense, and a one-tap shortcut to the AI assistant</p>
+  </div>
+  <div class="arch-card">
+    <p class="arch-title">AI assistant</p>
+    <p class="arch-body">Full chat-style screen, not buried in a menu — it's the key differentiator and should feel prominent</p>
+  </div>
+  <div class="arch-card">
+    <p class="arch-title">Add transaction</p>
+    <p class="arch-body">Bottom sheet modal from any screen via a floating + button — keeps the flow fast and non-disruptive</p>
+  </div>
+  <div class="arch-card">
+    <p class="arch-title">Reports & insights</p>
+    <p class="arch-body">Grouped under the Insights tab — Spending Analysis, Savings Goals, and Reports as sub-screens</p>
+  </div>
+</div>

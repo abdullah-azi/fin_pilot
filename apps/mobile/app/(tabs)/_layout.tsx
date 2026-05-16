@@ -2,7 +2,7 @@ import React from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Redirect, Tabs } from 'expo-router';
 
-import { palette } from '@/constants/theme';
+import { authPalette } from '@/constants/theme';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -25,17 +25,25 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: palette.teal,
-        tabBarInactiveTintColor: palette.gray500,
+        tabBarActiveTintColor: authPalette.violetBright,
+        tabBarInactiveTintColor: authPalette.textSoft,
         tabBarStyle: {
-          backgroundColor: palette.surface,
-          borderTopColor: palette.border,
-          height: 72,
-          paddingTop: 8,
-          paddingBottom: 10,
+          backgroundColor: authPalette.surface,
+          borderTopColor: authPalette.border,
+          borderTopWidth: 0.5,
+          height: 78,
+          paddingTop: 10,
+          paddingBottom: 12,
+        },
+        tabBarItemStyle: {
+          paddingTop: 2,
+        },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '600',
         },
         sceneStyle: {
-          backgroundColor: palette.background,
+          backgroundColor: authPalette.background,
         },
       }}
     >

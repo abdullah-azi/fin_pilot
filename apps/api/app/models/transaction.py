@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.models.enums import TransactionType
+from app.models.enums import TransactionFrequency, TransactionType
 from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 
@@ -25,6 +25,12 @@ class Transaction(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     type: Mapped[TransactionType] = mapped_column(Enum(TransactionType), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    income_frequency: Mapped[TransactionFrequency | None] = mapped_column(
+        Enum(TransactionFrequency, name="transaction_frequency"),
+        nullable=True,
+    )
+    hours_per_day: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    days_per_week: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
     category_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("categories.id", ondelete="SET NULL"),
@@ -37,4 +43,3 @@ class Transaction(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     user = relationship("User", back_populates="transactions")
     category = relationship("Category", back_populates="transactions")
-

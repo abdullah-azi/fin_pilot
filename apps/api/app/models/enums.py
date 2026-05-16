@@ -6,6 +6,14 @@ class TransactionType(StrEnum):
     EXPENSE = "expense"
 
 
+class TransactionFrequency(StrEnum):
+    ONCE = "once"
+    HOURLY = "hourly"
+    DAILY = "daily"
+    MONTHLY = "monthly"
+    YEARLY = "yearly"
+
+
 class CategoryType(StrEnum):
     INCOME = "income"
     EXPENSE = "expense"
@@ -42,4 +50,3 @@ class AIContextType(StrEnum):
     SAVINGS_GOAL = "savings_goal"
     REPORT_SUMMARY = "report_summary"
     GENERAL_ADVICE = "general_advice"
-

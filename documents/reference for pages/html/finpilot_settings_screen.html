@@ -1,0 +1,375 @@
+
+<style>
+  .pw{display:flex;justify-content:center;gap:26px;padding:2rem 0;flex-wrap:wrap;align-items:flex-start;}
+  .phone{width:295px;border-radius:44px;border:1.5px solid #2e2e2e;overflow:hidden;background:#0e0e0e;}
+  .notch{width:88px;height:26px;background:#0e0e0e;border-radius:0 0 16px 16px;margin:0 auto;border:1.5px solid #2e2e2e;border-top:none;}
+  .screen{background:#0e0e0e;padding:0;}
+
+  .profile-hero{background:#161616;border-bottom:0.5px solid #1e1e1e;padding:20px 20px 18px;display:flex;flex-direction:column;align-items:center;gap:10px;}
+  .avatar-ring{width:64px;height:64px;border-radius:50%;background:#1a1525;border:2px solid #7C3AED;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:500;color:#9b72f5;position:relative;}
+  .avatar-edit{position:absolute;bottom:0;right:0;width:20px;height:20px;border-radius:50%;background:#7C3AED;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;border:1.5px solid #0e0e0e;}
+  .profile-name{font-size:15px;font-weight:500;color:#f0f0f0;margin:0;}
+  .profile-email{font-size:11px;color:#555;margin:0;}
+  .profile-stats{display:flex;gap:0;background:#1e1e1e;border-radius:10px;overflow:hidden;border:0.5px solid #272727;width:100%;}
+  .pstat{flex:1;padding:8px 0;text-align:center;border-right:0.5px solid #272727;}
+  .pstat:last-child{border-right:none;}
+  .pstat-val{font-size:13px;font-weight:500;color:#f0f0f0;display:block;}
+  .pstat-label{font-size:9px;color:#555;}
+
+  .body{padding:14px 14px 0;}
+
+  .settings-group{background:#161616;border:0.5px solid #272727;border-radius:12px;overflow:hidden;margin-bottom:10px;}
+  .sg-label{font-size:10px;color:#555;letter-spacing:0.05em;margin:0 0 6px;padding:0 2px;}
+
+  .srow{display:flex;align-items:center;gap:10px;padding:11px 13px;border-bottom:0.5px solid #1e1e1e;}
+  .srow:last-child{border-bottom:none;}
+  .srow-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+  .srow-text{flex:1;}
+  .srow-title{font-size:12px;font-weight:500;color:#ddd;margin:0 0 1px;}
+  .srow-sub{font-size:10px;color:#555;margin:0;}
+  .srow-right{display:flex;align-items:center;gap:6px;}
+  .srow-val{font-size:11px;color:#555;}
+  .srow-arrow{font-size:16px;color:#444;}
+
+  /* Toggle switch */
+  .toggle{width:36px;height:20px;border-radius:10px;position:relative;flex-shrink:0;}
+  .toggle.on{background:#7C3AED;}
+  .toggle.off{background:#272727;}
+  .toggle-thumb{width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;transition:left 0.2s;}
+  .toggle.on .toggle-thumb{left:18px;}
+  .toggle.off .toggle-thumb{left:2px;}
+
+  .badge-pill{font-size:9px;padding:2px 7px;border-radius:20px;font-weight:500;}
+  .badge-pro{background:#1a1525;border:0.5px solid #7C3AED44;color:#9b72f5;}
+  .badge-new{background:#0d1a12;border:0.5px solid #22c55e44;color:#22c55e;}
+
+  .danger-row{display:flex;align-items:center;gap:10px;padding:11px 13px;border-bottom:0.5px solid #1e1e1e;}
+  .danger-row:last-child{border-bottom:none;}
+  .dr-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+  .dr-title{font-size:12px;font-weight:500;flex:1;}
+
+  .signout-btn{margin:0 0 10px;background:#161616;border:0.5px solid #272727;border-radius:12px;padding:13px 0;text-align:center;font-size:13px;font-weight:500;color:#555;display:flex;align-items:center;justify-content:center;gap:7px;}
+
+  .nb{display:flex;background:#161616;border-top:0.5px solid #272727;padding:8px 0 12px;}
+  .ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .ni-ic{font-size:19px;color:#444;}
+  .ni.active .ni-ic{color:#7C3AED;}
+  .ni-lb{font-size:8px;color:#444;}
+  .ni.active .ni-lb{color:#9b72f5;font-weight:500;}
+  .nd{width:3px;height:3px;border-radius:50%;background:#7C3AED;margin:0 auto;}
+
+  .slabel{text-align:center;font-size:11px;color:#555;padding:10px 0 4px;}
+  .panel{max-width:210px;padding-top:0.5rem;}
+  .ptitle{font-size:13px;font-weight:500;color:var(--color-text-primary);margin:0 0 14px;}
+  .pnote{background:var(--color-background-secondary);border-radius:10px;padding:10px 12px;margin-bottom:10px;}
+  .pnh{font-size:11px;font-weight:500;color:var(--color-text-primary);margin:0 0 3px;}
+  .pnb{font-size:11px;color:var(--color-text-secondary);margin:0;line-height:1.5;}
+  .sw{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;}
+</style>
+
+<h2 class="sr-only">FinPilot settings and profile screen showing user profile header, account settings, preferences, notifications, security, and danger zone</h2>
+
+<div class="pw">
+
+  <!-- Screen 1: Profile + main settings -->
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <p class="slabel">Profile + preferences</p>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+
+        <div class="profile-hero">
+          <div class="avatar-ring">
+            AK
+            <div class="avatar-edit"><i class="ti ti-pencil" aria-hidden="true"></i></div>
+          </div>
+          <div style="text-align:center;">
+            <p class="profile-name">Ahmed Khan</p>
+            <p class="profile-email">ahmed@gmail.com</p>
+          </div>
+          <div class="profile-stats">
+            <div class="pstat">
+              <span class="pstat-val">47</span>
+              <span class="pstat-label">transactions</span>
+            </div>
+            <div class="pstat">
+              <span class="pstat-val">3</span>
+              <span class="pstat-label">goals</span>
+            </div>
+            <div class="pstat">
+              <span class="pstat-val">62d</span>
+              <span class="pstat-label">streak</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="body">
+
+          <p class="sg-label">ACCOUNT</p>
+          <div class="settings-group">
+            <div class="srow">
+              <div class="srow-icon" style="background:#1a1525;"><i class="ti ti-user" aria-hidden="true" style="color:#7C3AED;"></i></div>
+              <div class="srow-text">
+                <p class="srow-title">Personal info</p>
+                <p class="srow-sub">Name, email, phone</p>
+              </div>
+              <div class="srow-right"><i class="ti ti-chevron-right srow-arrow" aria-hidden="true"></i></div>
+            </div>
+            <div class="srow">
+              <div class="srow-icon" style="background:#1f1a0e;"><i class="ti ti-coins" aria-hidden="true" style="color:#f59e0b;"></i></div>
+              <div class="srow-text">
+                <p class="srow-title">Currency & region</p>
+                <p class="srow-sub">PKR · Pakistan</p>
+              </div>
+              <div class="srow-right"><span class="srow-val">PKR</span><i class="ti ti-chevron-right srow-arrow" aria-hidden="true"></i></div>
+            </div>
+            <div class="srow">
+              <div class="srow-icon" style="background:#0d1a12;"><i class="ti ti-calendar" aria-hidden="true" style="color:#22c55e;"></i></div>
+              <div class="srow-text">
+                <p class="srow-title">Month start date</p>
+                <p class="srow-sub">When your budget cycle resets</p>
+              </div>
+              <div class="srow-right"><span class="srow-val">1st</span><i class="ti ti-chevron-right srow-arrow" aria-hidden="true"></i></div>
+            </div>
+          </div>
+
+          <p class="sg-label">CATEGORIES</p>
+          <div class="settings-group">
+            <div class="srow">
+              <div class="srow-icon" style="background:#131520;"><i class="ti ti-layout-grid" aria-hidden="true" style="color:#6366f1;"></i></div>
+              <div class="srow-text">
+                <p class="srow-title">Manage categories</p>
+                <p class="srow-sub">Add, rename or hide categories</p>
+              </div>
+              <div class="srow-right"><i class="ti ti-chevron-right srow-arrow" aria-hidden="true"></i></div>
+            </div>
+            <div class="srow">
+              <div class="srow-icon" style="background:#1f1a0e;"><i class="ti ti-target" aria-hidden="true" style="color:#f59e0b;"></i></div>
+              <div class="srow-text">
+                <p class="srow-title">Budget limits</p>
+                <p class="srow-sub">Set max spend per category</p>
+              </div>
+              <div class="srow-right"><i class="ti ti-chevron-right srow-arrow" aria-hidden="true"></i></div>
+            </div>
+          </div>
+
+          <p class="sg-label">PREFERENCES</p>
+          <div class="settings-group">
+            <div class="srow">
+              <div class="srow-icon" style="background:#1a1525;"><i class="ti ti-robot" aria-hidden="true" style="color:#7C3AED;"></i></div>
+              <div class="srow-text">
+                <p class="srow-title">AI suggestions</p>
+                <p class="srow-sub">Proactive spending tips</p>
+              </div>
+              <div class="srow-right">
+                <div class="toggle on"><div class="toggle-thumb"></div></div>
+              </div>
+            </div>
+            <div class="srow">
+              <div class="srow-icon" style="background:#161616;border:0.5px solid #272727;"><i class="ti ti-moon" aria-hidden="true" style="color:#888;"></i></div>
+              <div class="srow-text">
+                <p class="srow-title">Appearance</p>
+                <p class="srow-sub">Theme preference</p>
+              </div>
+              <div class="srow-right"><span class="srow-val">Dark</span><i class="ti ti-chevron-right srow-arrow" aria-hidden="true"></i></div>
+            </div>
+            <div class="srow">
+              <div class="srow-icon" style="background:#131520;"><i class="ti ti-language" aria-hidden="true" style="color:#6366f1;"></i></div>
+              <div class="srow-text">
+                <p class="srow-title">Language</p>
+                <p class="srow-sub">App display language</p>
+              </div>
+              <div class="srow-right"><span class="srow-val">English</span><i class="ti ti-chevron-right srow-arrow" aria-hidden="true"></i></div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="nb">
+          <div class="ni"><i class="ti ti-home ni-ic" aria-hidden="true"></i><span class="ni-lb">Home</span></div>
+          <div class="ni"><i class="ti ti-list ni-ic" aria-hidden="true"></i><span class="ni-lb">Transactions</span></div>
+          <div class="ni"><i class="ti ti-robot ni-ic" aria-hidden="true"></i><span class="ni-lb">Ask AI</span></div>
+          <div class="ni"><i class="ti ti-chart-pie ni-ic" aria-hidden="true"></i><span class="ni-lb">Insights</span></div>
+          <div class="ni active"><i class="ti ti-user ni-ic" aria-hidden="true"></i><span class="ni-lb">Profile</span><div class="nd"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: Notifications + Security + Danger -->
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <p class="slabel">Notifications + security</p>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+
+        <div style="padding:14px 18px 12px;border-bottom:0.5px solid #1e1e1e;">
+          <p style="font-size:16px;font-weight:500;color:#f0f0f0;margin:0;">Settings</p>
+        </div>
+
+        <div class="body">
+
+          <p class="sg-label">NOTIFICATIONS</p>
+          <div class="settings-group">
+            <div class="srow">
+              <div class="srow-icon" style="background:#1f1a0e;"><i class="ti ti-bell" aria-hidden="true" style="color:#f59e0b;"></i></div>
+              <div class="srow-text">
+                <p class="srow-title">Spending alerts</p>
+                <p class="srow-sub">Warn when nearing budget limit</p>
+              </div>
+              <div class="srow-right">
+                <div class="toggle on"><div class="toggle-thumb"></div></div>
+              </div>
+            </div>
+            <div class="srow">
+              <div class="srow-icon" style="background:#1a1525;"><i class="ti ti-robot" aria-hidden="true" style="color:#7C3AED;"></i></div>
+              <div class="srow-text">
+                <p class="srow-title">AI weekly digest</p>
+                <p class="srow-sub">Summary every Sunday</p>
+              </div>
+              <div class="srow-right">
+                <div class="toggle on"><div class="toggle-thumb"></div></div>
+              </div>
+            </div>
+            <div class="srow">
+              <div class="srow-icon" style="background:#0d1a12;"><i class="ti ti-piggy-bank" aria-hidden="true" style="color:#22c55e;"></i></div>
+              <div class="srow-text">
+                <p class="srow-title">Savings reminders</p>
+                <p class="srow-sub">Monthly contribution nudge</p>
+              </div>
+              <div class="srow-right">
+                <div class="toggle on"><div class="toggle-thumb"></div></div>
+              </div>
+            </div>
+            <div class="srow">
+              <div class="srow-icon" style="background:#161616;border:0.5px solid #272727;"><i class="ti ti-discount" aria-hidden="true" style="color:#555;"></i></div>
+              <div class="srow-text">
+                <p class="srow-title">Promotions</p>
+                <p class="srow-sub">App news and offers</p>
+              </div>
+              <div class="srow-right">
+                <div class="toggle off"><div class="toggle-thumb"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <p class="sg-label">SECURITY</p>
+          <div class="settings-group">
+            <div class="srow">
+              <div class="srow-icon" style="background:#131520;"><i class="ti ti-fingerprint" aria-hidden="true" style="color:#6366f1;"></i></div>
+              <div class="srow-text">
+                <p class="srow-title">Biometric unlock</p>
+                <p class="srow-sub">Face ID / fingerprint</p>
+              </div>
+              <div class="srow-right">
+                <div class="toggle on"><div class="toggle-thumb"></div></div>
+              </div>
+            </div>
+            <div class="srow">
+              <div class="srow-icon" style="background:#1a1525;"><i class="ti ti-lock" aria-hidden="true" style="color:#7C3AED;"></i></div>
+              <div class="srow-text">
+                <p class="srow-title">Change password</p>
+                <p class="srow-sub">Last changed 14 days ago</p>
+              </div>
+              <div class="srow-right"><i class="ti ti-chevron-right srow-arrow" aria-hidden="true"></i></div>
+            </div>
+            <div class="srow">
+              <div class="srow-icon" style="background:#161616;border:0.5px solid #272727;"><i class="ti ti-shield-check" aria-hidden="true" style="color:#888;"></i></div>
+              <div class="srow-text">
+                <p class="srow-title">Two-factor auth</p>
+                <p class="srow-sub">Extra login protection</p>
+              </div>
+              <div class="srow-right">
+                <span class="badge-pill badge-new">Off</span>
+                <i class="ti ti-chevron-right srow-arrow" aria-hidden="true"></i>
+              </div>
+            </div>
+          </div>
+
+          <p class="sg-label">DATA</p>
+          <div class="settings-group">
+            <div class="srow">
+              <div class="srow-icon" style="background:#131520;"><i class="ti ti-download" aria-hidden="true" style="color:#6366f1;"></i></div>
+              <div class="srow-text">
+                <p class="srow-title">Export all data</p>
+                <p class="srow-sub">Download as CSV or PDF</p>
+              </div>
+              <div class="srow-right"><i class="ti ti-chevron-right srow-arrow" aria-hidden="true"></i></div>
+            </div>
+            <div class="srow">
+              <div class="srow-icon" style="background:#161616;border:0.5px solid #272727;"><i class="ti ti-info-circle" aria-hidden="true" style="color:#555;"></i></div>
+              <div class="srow-text">
+                <p class="srow-title">Privacy policy</p>
+                <p class="srow-sub">How we use your data</p>
+              </div>
+              <div class="srow-right"><i class="ti ti-chevron-right srow-arrow" aria-hidden="true"></i></div>
+            </div>
+          </div>
+
+          <p class="sg-label">DANGER ZONE</p>
+          <div class="settings-group">
+            <div class="danger-row">
+              <div class="dr-icon" style="background:#1a100e;"><i class="ti ti-trash" aria-hidden="true" style="color:#ef4444;"></i></div>
+              <p class="dr-title" style="color:#ef4444;">Delete all transactions</p>
+              <i class="ti ti-chevron-right srow-arrow" aria-hidden="true"></i>
+            </div>
+            <div class="danger-row">
+              <div class="dr-icon" style="background:#1a0f0f;"><i class="ti ti-user-x" aria-hidden="true" style="color:#ef4444;"></i></div>
+              <p class="dr-title" style="color:#ef4444;">Delete account</p>
+              <i class="ti ti-chevron-right srow-arrow" aria-hidden="true"></i>
+            </div>
+          </div>
+
+          <div class="signout-btn">
+            <i class="ti ti-logout" aria-hidden="true" style="font-size:16px;"></i> Sign out
+          </div>
+
+          <p style="text-align:center;font-size:10px;color:#333;margin-bottom:20px;">FinPilot v1.0.0 · Built with ♥ in Pakistan</p>
+
+        </div>
+
+        <div class="nb">
+          <div class="ni"><i class="ti ti-home ni-ic" aria-hidden="true"></i><span class="ni-lb">Home</span></div>
+          <div class="ni"><i class="ti ti-list ni-ic" aria-hidden="true"></i><span class="ni-lb">Transactions</span></div>
+          <div class="ni"><i class="ti ti-robot ni-ic" aria-hidden="true"></i><span class="ni-lb">Ask AI</span></div>
+          <div class="ni"><i class="ti ti-chart-pie ni-ic" aria-hidden="true"></i><span class="ni-lb">Insights</span></div>
+          <div class="ni active"><i class="ti ti-user ni-ic" aria-hidden="true"></i><span class="ni-lb">Profile</span><div class="nd"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel -->
+  <div class="panel">
+    <p class="ptitle">Design decisions</p>
+    <div class="pnote">
+      <p class="pnh">Profile hero with stats</p>
+      <p class="pnb">Transaction count, active goals, and a usage streak sit below the avatar. The streak (62 days) is a subtle engagement mechanic — users who see it are more likely to open the app daily.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh">Month start date setting</p>
+      <p class="pnb">Critical for accuracy — someone paid on the 25th wants their budget cycle to start on the 25th, not the 1st. Without this, every report and insight is misaligned.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh">Category management in settings</p>
+      <p class="pnb">Users can add, rename, or hide categories here — keeping the add transaction screen clean while still giving full control to power users.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh"><span class="sw" style="background:#7C3AED"></span>Violet toggles = on</p>
+      <p class="pnb">The toggle uses violet when active — same color as all interactive elements. Off state is a neutral gray. Promotions is the only toggle set to off by default.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh">AI weekly digest toggle</p>
+      <p class="pnb">A Sunday summary push notification is one of the highest-value features for retention — it re-engages users who haven't opened the app mid-week.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh">Danger zone — no red background</p>
+      <p class="pnb">Destructive actions use red text and icons but the same dark card background — no alarming red background that would feel aggressive. The label "Danger zone" sets the context.</p>
+    </div>
+    <div class="pnote">
+      <p class="pnh">Sign out is muted, not red</p>
+      <p class="pnb">Sign out is a routine action, not a destructive one — it gets a neutral gray button so it doesn't compete visually with the actual danger zone actions above it.</p>
+    </div>
+  </div>
+
+</div>

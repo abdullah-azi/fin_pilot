@@ -1,0 +1,384 @@
+
+<style>
+  .pw{display:flex;justify-content:center;gap:26px;padding:2rem 0;flex-wrap:wrap;align-items:flex-start;}
+  .phone{width:295px;border-radius:44px;border:1.5px solid #2e2e2e;overflow:hidden;background:#0e0e0e;}
+  .notch{width:88px;height:26px;background:#0e0e0e;border-radius:0 0 16px 16px;margin:0 auto;border:1.5px solid #2e2e2e;border-top:none;}
+  .screen{background:#0e0e0e;padding:0;}
+
+  .hdr{padding:14px 18px 12px;border-bottom:0.5px solid #1e1e1e;}
+  .hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .hdr-title{font-size:16px;font-weight:500;color:#f0f0f0;margin:0;}
+  .hdr-icons{display:flex;gap:10px;}
+  .hdr-ic{font-size:20px;color:#555;}
+  .hdr-ic.active{color:#7C3AED;}
+
+  .search-bar{background:#161616;border:0.5px solid #2e2e2e;border-radius:22px;padding:8px 14px;display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+  .search-bar i{font-size:15px;color:#444;}
+  .search-bar span{font-size:12px;color:#3a3a3a;}
+
+  .filter-row{display:flex;gap:6px;overflow:hidden;}
+  .fchip{padding:5px 11px;border-radius:20px;font-size:10px;font-weight:500;border:0.5px solid #272727;background:#161616;color:#555;white-space:nowrap;}
+  .fchip.sel{background:#1a1525;border-color:#7C3AED;color:#9b72f5;}
+  .fchip.income-sel{background:#0d1a12;border-color:#22c55e;color:#4a8c5c;}
+  .fchip.expense-sel{background:#1a0f0f;border-color:#ef4444;color:#a05050;}
+
+  .body{padding:14px 14px 0;}
+
+  .month-summary{background:#161616;border:0.5px solid #272727;border-radius:12px;padding:10px 13px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
+  .ms-label{font-size:10px;color:#555;margin:0 0 2px;}
+  .ms-val{font-size:13px;font-weight:500;margin:0;}
+  .ms-divider{width:0.5px;background:#272727;align-self:stretch;}
+  .ms-center{text-align:center;}
+
+  .date-label{font-size:10px;color:#555;letter-spacing:0.04em;margin:0 0 7px;}
+
+  .txn-group{background:#161616;border-radius:12px;border:0.5px solid #272727;overflow:hidden;margin-bottom:10px;}
+  .txn-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:0.5px solid #1e1e1e;}
+  .txn-row:last-child{border-bottom:none;}
+  .txn-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+  .txn-info{flex:1;min-width:0;}
+  .txn-name{font-size:12px;font-weight:500;color:#ddd;margin:0 0 1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .txn-cat{font-size:10px;color:#555;margin:0;}
+  .txn-right{text-align:right;flex-shrink:0;}
+  .txn-amt{font-size:12px;font-weight:500;display:block;margin-bottom:1px;}
+  .txn-time{font-size:9px;color:#444;}
+
+  .load-more{text-align:center;padding:10px 0 16px;}
+  .load-more span{font-size:11px;color:#555;}
+
+  .nb{display:flex;background:#161616;border-top:0.5px solid #272727;padding:8px 0 12px;}
+  .ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .ni-ic{font-size:19px;color:#444;}
+  .ni.active .ni-ic{color:#7C3AED;}
+  .ni-lb{font-size:8px;color:#444;}
+  .ni.active .ni-lb{color:#9b72f5;font-weight:500;}
+  .nd{width:3px;height:3px;border-radius:50%;background:#7C3AED;margin:0 auto;}
+
+  .slabel{text-align:center;font-size:11px;color:#555;padding:10px 0 4px;}
+
+  .panel{max-width:210px;padding-top:0.5rem;}
+  .ptitle{font-size:13px;font-weight:500;color:var(--color-text-primary);margin:0 0 14px;}
+  .pnote{background:var(--color-background-secondary);border-radius:10px;padding:10px 12px;margin-bottom:10px;}
+  .pnh{font-size:11px;font-weight:500;color:var(--color-text-primary);margin:0 0 3px;}
+  .pnb{font-size:11px;color:var(--color-text-secondary);margin:0;line-height:1.5;}
+  .sw{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;}
+</style>
+
+<h2 class="sr-only">FinPilot transaction history screen showing two states: all transactions grouped by date with filters, and a filtered expense-only view</h2>
+
+<div class="pw">
+
+  <!-- Screen 1: Default all transactions -->
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <p class="slabel">All transactions</p>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+
+        <div class="hdr">
+          <div class="hdr-top">
+            <p class="hdr-title">History</p>
+            <div class="hdr-icons">
+              <i class="ti ti-sort-descending hdr-ic" aria-hidden="true"></i>
+              <i class="ti ti-adjustments-horizontal hdr-ic active" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="search-bar">
+            <i class="ti ti-search" aria-hidden="true"></i>
+            <span>Search transactions...</span>
+          </div>
+          <div class="filter-row">
+            <div class="fchip sel">All</div>
+            <div class="fchip">Expenses</div>
+            <div class="fchip">Income</div>
+            <div class="fchip">This month</div>
+            <div class="fchip">Last month</div>
+          </div>
+        </div>
+
+        <div class="body">
+
+          <div class="month-summary">
+            <div>
+              <p class="ms-label">Total in</p>
+              <p class="ms-val" style="color:#22c55e">+Rs 1,40,000</p>
+            </div>
+            <div class="ms-divider"></div>
+            <div class="ms-center">
+              <p class="ms-label">Net</p>
+              <p class="ms-val" style="color:#f0f0f0">Rs 84,320</p>
+            </div>
+            <div class="ms-divider"></div>
+            <div style="text-align:right;">
+              <p class="ms-label">Total out</p>
+              <p class="ms-val" style="color:#ef4444">−Rs 55,680</p>
+            </div>
+          </div>
+
+          <p class="date-label">TODAY — MAY 16</p>
+          <div class="txn-group">
+            <div class="txn-row">
+              <div class="txn-icon" style="background:#1f1a0e;"><i class="ti ti-building-store" aria-hidden="true" style="color:#f59e0b"></i></div>
+              <div class="txn-info">
+                <p class="txn-name">Carrefour</p>
+                <p class="txn-cat">Groceries</p>
+              </div>
+              <div class="txn-right">
+                <span class="txn-amt" style="color:#ef4444">−Rs 3,240</span>
+                <span class="txn-time">2:14 PM</span>
+              </div>
+            </div>
+            <div class="txn-row">
+              <div class="txn-icon" style="background:#13131f;"><i class="ti ti-device-tv" aria-hidden="true" style="color:#7C3AED"></i></div>
+              <div class="txn-info">
+                <p class="txn-name">Netflix</p>
+                <p class="txn-cat">Subscriptions</p>
+              </div>
+              <div class="txn-right">
+                <span class="txn-amt" style="color:#ef4444">−Rs 1,500</span>
+                <span class="txn-time">10:00 AM</span>
+              </div>
+            </div>
+          </div>
+
+          <p class="date-label">YESTERDAY — MAY 15</p>
+          <div class="txn-group">
+            <div class="txn-row">
+              <div class="txn-icon" style="background:#131520;"><i class="ti ti-car" aria-hidden="true" style="color:#6366f1"></i></div>
+              <div class="txn-info">
+                <p class="txn-name">Uber</p>
+                <p class="txn-cat">Transport</p>
+              </div>
+              <div class="txn-right">
+                <span class="txn-amt" style="color:#ef4444">−Rs 850</span>
+                <span class="txn-time">8:45 PM</span>
+              </div>
+            </div>
+            <div class="txn-row">
+              <div class="txn-icon" style="background:#131a14;"><i class="ti ti-wallet" aria-hidden="true" style="color:#22c55e"></i></div>
+              <div class="txn-info">
+                <p class="txn-name">Freelance payment</p>
+                <p class="txn-cat">Income · One-time</p>
+              </div>
+              <div class="txn-right">
+                <span class="txn-amt" style="color:#22c55e">+Rs 25,000</span>
+                <span class="txn-time">3:30 PM</span>
+              </div>
+            </div>
+            <div class="txn-row">
+              <div class="txn-icon" style="background:#1a100e;"><i class="ti ti-heart" aria-hidden="true" style="color:#ef4444"></i></div>
+              <div class="txn-info">
+                <p class="txn-name">Pharmacy</p>
+                <p class="txn-cat">Health</p>
+              </div>
+              <div class="txn-right">
+                <span class="txn-amt" style="color:#ef4444">−Rs 2,100</span>
+                <span class="txn-time">1:15 PM</span>
+              </div>
+            </div>
+          </div>
+
+          <p class="date-label">MAY 14</p>
+          <div class="txn-group">
+            <div class="txn-row">
+              <div class="txn-icon" style="background:#1f1a0e;"><i class="ti ti-shopping-cart" aria-hidden="true" style="color:#f59e0b"></i></div>
+              <div class="txn-info">
+                <p class="txn-name">Imtiaz Superstore</p>
+                <p class="txn-cat">Groceries</p>
+              </div>
+              <div class="txn-right">
+                <span class="txn-amt" style="color:#ef4444">−Rs 5,400</span>
+                <span class="txn-time">6:20 PM</span>
+              </div>
+            </div>
+            <div class="txn-row">
+              <div class="txn-icon" style="background:#13131f;"><i class="ti ti-tools" aria-hidden="true" style="color:#f59e0b"></i></div>
+              <div class="txn-info">
+                <p class="txn-name">PTCL Bill</p>
+                <p class="txn-cat">Utilities</p>
+              </div>
+              <div class="txn-right">
+                <span class="txn-amt" style="color:#ef4444">−Rs 3,200</span>
+                <span class="txn-time">11:00 AM</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="load-more">
+            <span>Load earlier transactions</span>
+          </div>
+
+        </div>
+
+        <div class="nb">
+          <div class="ni"><i class="ti ti-home ni-ic" aria-hidden="true"></i><span class="ni-lb">Home</span></div>
+          <div class="ni active"><i class="ti ti-list ni-ic" aria-hidden="true"></i><span class="ni-lb">Transactions</span><div class="nd"></div></div>
+          <div class="ni"><i class="ti ti-robot ni-ic" aria-hidden="true"></i><span class="ni-lb">Ask AI</span></div>
+          <div class="ni"><i class="ti ti-chart-pie ni-ic" aria-hidden="true"></i><span class="ni-lb">Insights</span></div>
+          <div class="ni"><i class="ti ti-user ni-ic" aria-hidden="true"></i><span class="ni-lb">Profile</span></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: Filtered to Expenses only -->
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <p class="slabel">Filtered — expenses only</p>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+
+        <div class="hdr">
+          <div class="hdr-top">
+            <p class="hdr-title">History</p>
+            <div class="hdr-icons">
+              <i class="ti ti-sort-descending hdr-ic" aria-hidden="true"></i>
+              <i class="ti ti-adjustments-horizontal hdr-ic active" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="search-bar" style="border-color:#7C3AED;">
+            <i class="ti ti-search" aria-hidden="true" style="color:#7C3AED;"></i>
+            <span style="color:#bbb;">groceries</span>
+          </div>
+          <div class="filter-row">
+            <div class="fchip">All</div>
+            <div class="fchip expense-sel">Expenses</div>
+            <div class="fchip">Income</div>
+            <div class="fchip sel">This month</div>
+            <div class="fchip">Last month</div>
+          </div>
+        </div>
+
+        <div class="body">
+
+          <div style="background:#1a0f0f;border:0.5px solid #3d1a1a;border-radius:10px;padding:9px 12px;margin-bottom:13px;display:flex;align-items:center;gap:8px;">
+            <i class="ti ti-filter" aria-hidden="true" style="font-size:14px;color:#ef4444;"></i>
+            <span style="font-size:11px;color:#a05050;">Showing expenses matching <strong style="color:#ef4444;">"groceries"</strong> — May 2026</span>
+          </div>
+
+          <p class="date-label">TODAY — MAY 16</p>
+          <div class="txn-group">
+            <div class="txn-row">
+              <div class="txn-icon" style="background:#1f1a0e;"><i class="ti ti-building-store" aria-hidden="true" style="color:#f59e0b"></i></div>
+              <div class="txn-info">
+                <p class="txn-name">Carrefour</p>
+                <p class="txn-cat">Groceries</p>
+              </div>
+              <div class="txn-right">
+                <span class="txn-amt" style="color:#ef4444">−Rs 3,240</span>
+                <span class="txn-time">2:14 PM</span>
+              </div>
+            </div>
+          </div>
+
+          <p class="date-label">MAY 14</p>
+          <div class="txn-group">
+            <div class="txn-row">
+              <div class="txn-icon" style="background:#1f1a0e;"><i class="ti ti-shopping-cart" aria-hidden="true" style="color:#f59e0b"></i></div>
+              <div class="txn-info">
+                <p class="txn-name">Imtiaz Superstore</p>
+                <p class="txn-cat">Groceries</p>
+              </div>
+              <div class="txn-right">
+                <span class="txn-amt" style="color:#ef4444">−Rs 5,400</span>
+                <span class="txn-time">6:20 PM</span>
+              </div>
+            </div>
+          </div>
+
+          <p class="date-label">MAY 10</p>
+          <div class="txn-group">
+            <div class="txn-row">
+              <div class="txn-icon" style="background:#1f1a0e;"><i class="ti ti-building-store" aria-hidden="true" style="color:#f59e0b"></i></div>
+              <div class="txn-info">
+                <p class="txn-name">Al-Fatah</p>
+                <p class="txn-cat">Groceries</p>
+              </div>
+              <div class="txn-right">
+                <span class="txn-amt" style="color:#ef4444">−Rs 4,800</span>
+                <span class="txn-time">5:10 PM</span>
+              </div>
+            </div>
+          </div>
+
+          <p class="date-label">MAY 5</p>
+          <div class="txn-group">
+            <div class="txn-row">
+              <div class="txn-icon" style="background:#1f1a0e;"><i class="ti ti-shopping-cart" aria-hidden="true" style="color:#f59e0b"></i></div>
+              <div class="txn-info">
+                <p class="txn-name">Carrefour</p>
+                <p class="txn-cat">Groceries</p>
+              </div>
+              <div class="txn-right">
+                <span class="txn-amt" style="color:#ef4444">−Rs 4,960</span>
+                <span class="txn-time">7:45 PM</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Category total summary -->
+          <div style="background:#161616;border:0.5px solid #272727;border-radius:11px;padding:11px 13px;margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-size:10px;color:#555;">4 transactions · Groceries</span>
+              <span style="font-size:13px;font-weight:500;color:#ef4444;">−Rs 18,400</span>
+            </div>
+            <div style="height:3px;background:#272727;border-radius:2px;">
+              <div style="height:3px;width:72%;background:#f59e0b;border-radius:2px;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:5px;">
+              <span style="font-size:9px;color:#555;">72% of monthly food budget</span>
+              <span style="font-size:9px;color:#7C3AED;">Ask AI ↗</span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="nb">
+          <div class="ni"><i class="ti ti-home ni-ic" aria-hidden="true"></i><span class="ni-lb">Home</span></div>
+          <div class="ni active"><i class="ti ti-list ni-ic" aria-hidden="true"></i><span class="ni-lb">Transactions</span><div class="nd"></div></div>
+          <div class="ni"><i class="ti ti-robot ni-ic" aria-hidden="true"></i><span class="ni-lb">Ask AI</span></div>
+          <div class="ni"><i class="ti ti-chart-pie ni-ic" aria-hidden="true"></i><span class="ni-lb">Insights</span></div>
+          <div class="ni"><i class="ti ti-user ni-ic" aria-hidden="true"></i><span class="ni-lb">Profile</span></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel -->
+  <div class="panel">
+    <p class="ptitle">Design decisions</p>
+
+    <div class="pnote">
+      <p class="pnh">Month summary strip</p>
+      <p class="pnb">Total in, net, and total out as a compact 3-column strip — the user instantly sees the month's health before scrolling through individual transactions.</p>
+    </div>
+
+    <div class="pnote">
+      <p class="pnh">Grouped by date, not category</p>
+      <p class="pnb">Chronological grouping matches how people think about their spending — "what did I buy yesterday?" not "show me all transport." Category filtering handles the other use case.</p>
+    </div>
+
+    <div class="pnote">
+      <p class="pnh">Filter chips + search together</p>
+      <p class="pnb">Chips handle broad filters (All / Expenses / Income / Month). Search handles specific lookups. Both work simultaneously — filter to Expenses, then search "groceries."</p>
+    </div>
+
+    <div class="pnote">
+      <p class="pnh"><span class="sw" style="background:#ef4444"></span>Red = money out</p>
+      <p class="pnb">Consistent with the home screen. Every debit is red, every credit is green — no ambiguity even when scanning quickly.</p>
+    </div>
+
+    <div class="pnote">
+      <p class="pnh">Category total on filter</p>
+      <p class="pnb">When filtered to a category, a summary card appears below showing total spent and % of budget — with an "Ask AI" shortcut to jump into a conversation about it.</p>
+    </div>
+
+    <div class="pnote">
+      <p class="pnh">Time shown, not just date</p>
+      <p class="pnb">Each transaction shows the time (2:14 PM) — useful for spotting patterns like late-night spending, and helps users match receipts to entries.</p>
+    </div>
+  </div>
+
+</div>

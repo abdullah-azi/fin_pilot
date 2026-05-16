@@ -10,6 +10,8 @@ from app.models.enums import CategoryType
 DEFAULT_CATEGORIES = [
     {"name": "Salary", "type": CategoryType.INCOME, "color": "#157A6E", "icon": "briefcase"},
     {"name": "Freelance", "type": CategoryType.INCOME, "color": "#1F9D6E", "icon": "laptop"},
+    {"name": "Investment", "type": CategoryType.INCOME, "color": "#22C55E", "icon": "line-chart"},
+    {"name": "Other", "type": CategoryType.BOTH, "color": "#7A7A7A", "icon": "ellipsis-h"},
     {"name": "Food", "type": CategoryType.EXPENSE, "color": "#F3B248", "icon": "utensils"},
     {"name": "Groceries", "type": CategoryType.EXPENSE, "color": "#3AA17E", "icon": "shopping-basket"},
     {"name": "Transport", "type": CategoryType.EXPENSE, "color": "#4E8098", "icon": "car"},
@@ -17,6 +19,10 @@ DEFAULT_CATEGORIES = [
     {"name": "Shopping", "type": CategoryType.EXPENSE, "color": "#C8553D", "icon": "shopping-bag"},
     {"name": "Health", "type": CategoryType.EXPENSE, "color": "#D95D39", "icon": "heartbeat"},
     {"name": "Entertainment", "type": CategoryType.EXPENSE, "color": "#7A8B99", "icon": "film"},
+    {"name": "Subscriptions", "type": CategoryType.EXPENSE, "color": "#7C3AED", "icon": "tv"},
+    {"name": "Utilities", "type": CategoryType.EXPENSE, "color": "#F59E0B", "icon": "wrench"},
+    {"name": "Clothing", "type": CategoryType.EXPENSE, "color": "#6366F1", "icon": "shopping-bag"},
+    {"name": "Education", "type": CategoryType.EXPENSE, "color": "#22C55E", "icon": "book"},
 ]
 
 
