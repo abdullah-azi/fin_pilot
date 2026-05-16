@@ -1,19 +1,20 @@
-from sqlalchemy import text
+from sqlalchemy import Engine, text
 
 from app.db.base import Base
 from app.db.session import engine
 from app.models import register_models
 
 
-def create_schema() -> None:
+def create_schema(bind_engine: Engine | None = None) -> None:
+    active_engine = bind_engine or engine
     register_models()
-    Base.metadata.create_all(bind=engine)
-    _sync_transaction_frequency_schema()
-    _sync_settings_profile_schema()
+    Base.metadata.create_all(bind=active_engine)
+    _sync_transaction_frequency_schema(active_engine)
+    _sync_settings_profile_schema(active_engine)
 
 
-def _sync_transaction_frequency_schema() -> None:
-    with engine.begin() as connection:
+def _sync_transaction_frequency_schema(bind_engine: Engine) -> None:
+    with bind_engine.begin() as connection:
         connection.execute(
             text(
                 """
@@ -62,8 +63,8 @@ def _sync_transaction_frequency_schema() -> None:
         )
 
 
-def _sync_settings_profile_schema() -> None:
-    with engine.begin() as connection:
+def _sync_settings_profile_schema(bind_engine: Engine) -> None:
+    with bind_engine.begin() as connection:
         connection.execute(
             text(
                 """

@@ -14,6 +14,7 @@ from app.core.security import decode_token
 from app.db.session import SessionLocal
 from app.models.user import User
 from app.models.user_session import UserSession
+from app.services.ai.service import AIService
 
 
 def get_db() -> Generator[Session, None, None]:
@@ -96,3 +97,7 @@ def get_current_auth_context(
 
 def get_current_user(auth: AuthContext = Depends(get_current_auth_context)) -> User:
     return auth.user
+
+
+def get_ai_service() -> AIService:
+    return AIService()

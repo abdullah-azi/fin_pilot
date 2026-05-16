@@ -14,10 +14,12 @@ class Settings(BaseSettings):
         "http://localhost:19006",
     ]
     database_url: str = "postgresql+psycopg://finpilot:finpilot@localhost:5433/finpilot"
+    test_database_url: str = "postgresql+psycopg://finpilot:finpilot@localhost:5433/finpilot_test"
     ai_provider: str = "deepseek"
     ai_model: str = "deepseek-v4-flash"
     ai_base_url: str = "https://api.deepseek.com"
     ai_api_key: str = "replace-me"
+    ai_timeout_seconds: float = 30.0
     jwt_secret_key: str = "change-me-to-a-long-random-secret-key-32chars"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
