@@ -1,7 +1,7 @@
 import uuid
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Enum, ForeignKey, Numeric, String
+from sqlalchemy import Boolean, Enum, ForeignKey, Integer, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -26,8 +26,15 @@ class UserPreference(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Enum(AIAdviceTone),
         nullable=True,
     )
+    month_start_day: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    ai_suggestions_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    weekly_digest_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    savings_reminders_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    promotions_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    biometric_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    appearance: Mapped[str] = mapped_column(String(20), default="dark", nullable=False)
+    language: Mapped[str] = mapped_column(String(20), default="English", nullable=False)
     notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     default_currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
 
     user = relationship("User", back_populates="preferences")
-

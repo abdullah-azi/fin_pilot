@@ -14,6 +14,7 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
     currency: Mapped[str] = mapped_column(String(3), default="USD", nullable=False)
     country: Mapped[str | None] = mapped_column(String(100), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -27,6 +28,11 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         uselist=False,
     )
     categories = relationship("Category", back_populates="user")
+    category_settings = relationship(
+        "UserCategorySetting",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
     ai_advice_logs = relationship(
         "AIAdviceLog",
         back_populates="user",

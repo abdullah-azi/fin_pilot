@@ -18,7 +18,7 @@ import {
 import type { LoginPayload, SignupPayload } from '@/lib/api/auth';
 import { API_BASE_URL } from '@/lib/api/config';
 import { useAuth } from '@/providers/AuthProvider';
-import { FinPilotMark } from '@/components/branding/FinPilotMark';
+import { FinPilotLogo } from '@/components/branding/FinPilotLogo';
 import { authPalette, radius, shadows, spacing, typography } from '@/constants/theme';
 
 type AuthMode = 'login' | 'signup';
@@ -165,7 +165,6 @@ export default function AuthScreen() {
           ]}
         >
           <LogoMark centered />
-          <Text style={styles.introTitle}>FinPilot</Text>
         </Animated.View>
       ) : null}
 
@@ -185,9 +184,6 @@ export default function AuthScreen() {
         >
           <View style={styles.logoRow}>
             <LogoMark />
-            <Text style={styles.logoText}>
-              Fin<Text style={styles.logoAccent}>Pilot</Text>
-            </Text>
           </View>
 
           <Text style={styles.heading}>
@@ -611,7 +607,7 @@ function AuthToggleButton({
 function LogoMark({ centered = false }: { centered?: boolean }) {
   return (
     <View style={[styles.logoMark, centered ? styles.logoMarkCentered : null]}>
-      <FinPilotMark size={centered ? 72 : 38} />
+      <FinPilotLogo showTagline={centered} width={centered ? 250 : 176} />
     </View>
   );
 }
@@ -725,12 +721,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: AUTH_COLORS.background,
-    gap: 18,
-  },
-  introTitle: {
-    color: AUTH_COLORS.text,
-    ...typography.display,
-    letterSpacing: 0.4,
   },
   authShell: {
     flex: 1,
@@ -741,36 +731,30 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl + 8,
   },
   logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: spacing.xxl + 2,
-  },
-  logoMark: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: spacing.xl + 8,
+  },
+  logoMark: {
+    alignSelf: 'center',
   },
   logoMarkCentered: {
     ...shadows.authLogo,
-  },
-  logoText: {
-    color: AUTH_COLORS.text,
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  logoAccent: {
-    color: AUTH_COLORS.violetBright,
+    alignSelf: 'center',
   },
   heading: {
     color: AUTH_COLORS.text,
     ...typography.display,
+    textAlign: 'center',
     marginBottom: 8,
   },
   subheading: {
     color: AUTH_COLORS.textMuted,
     ...typography.label,
+    textAlign: 'center',
+    alignSelf: 'center',
     marginBottom: spacing.xl + 2,
-    maxWidth: 280,
+    maxWidth: 304,
   },
   toggleRow: {
     flexDirection: 'row',

@@ -47,6 +47,7 @@ def create_user(db: Session, payload: UserCreate) -> User:
         email=normalized_email,
         hashed_password=hash_password(payload.password),
         full_name=payload.full_name,
+        phone=payload.phone,
         currency=payload.currency.upper(),
         country=payload.country,
     )
@@ -61,6 +62,14 @@ def create_user(db: Session, payload: UserCreate) -> User:
                 monthly_savings_target=payload.preferences.monthly_savings_target,
                 risk_style=payload.preferences.risk_style,
                 preferred_ai_tone=payload.preferences.preferred_ai_tone,
+                month_start_day=payload.preferences.month_start_day,
+                ai_suggestions_enabled=payload.preferences.ai_suggestions_enabled,
+                weekly_digest_enabled=payload.preferences.weekly_digest_enabled,
+                savings_reminders_enabled=payload.preferences.savings_reminders_enabled,
+                promotions_enabled=payload.preferences.promotions_enabled,
+                biometric_enabled=payload.preferences.biometric_enabled,
+                appearance=payload.preferences.appearance,
+                language=payload.preferences.language,
                 notifications_enabled=payload.preferences.notifications_enabled,
                 default_currency=(
                     payload.preferences.default_currency.upper()
@@ -91,6 +100,8 @@ def update_user(db: Session, user_id: UUID, payload: UserUpdate) -> User:
         user.hashed_password = hash_password(payload.password)
     if payload.full_name is not None:
         user.full_name = payload.full_name
+    if payload.phone is not None:
+        user.phone = payload.phone
     if payload.currency is not None:
         user.currency = payload.currency.upper()
     if payload.country is not None:

@@ -26,3 +26,8 @@ class Category(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     user = relationship("User", back_populates="categories")
     transactions = relationship("Transaction", back_populates="category")
+    user_settings = relationship(
+        "UserCategorySetting",
+        back_populates="category",
+        cascade="all, delete-orphan",
+    )

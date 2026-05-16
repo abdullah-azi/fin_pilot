@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -11,11 +13,20 @@ def test_auth_signup_login_and_me_flow(client: TestClient) -> None:
             "email": "user@example.com",
             "password": "supersecure123",
             "full_name": "Fin Pilot",
+            "phone": "+923001112233",
             "currency": "usd",
             "country": "Pakistan",
             "preferences": {
                 "monthly_income_expected": "5000.00",
                 "monthly_savings_target": "1000.00",
+                "month_start_day": 25,
+                "ai_suggestions_enabled": True,
+                "weekly_digest_enabled": True,
+                "savings_reminders_enabled": True,
+                "promotions_enabled": False,
+                "biometric_enabled": True,
+                "appearance": "dark",
+                "language": "English",
                 "notifications_enabled": True,
                 "default_currency": "usd",
             },
@@ -24,8 +35,11 @@ def test_auth_signup_login_and_me_flow(client: TestClient) -> None:
     assert signup_response.status_code == 201
     signup_body = signup_response.json()
     assert signup_body["user"]["email"] == "user@example.com"
+    assert signup_body["user"]["phone"] == "+923001112233"
     assert signup_body["user"]["currency"] == "USD"
     assert signup_body["user"]["preferences"]["default_currency"] == "USD"
+    assert signup_body["user"]["preferences"]["month_start_day"] == 25
+    assert signup_body["user"]["preferences"]["biometric_enabled"] is True
 
     login_response = client.post(
         "/api/v1/auth/login",
@@ -41,6 +55,7 @@ def test_auth_signup_login_and_me_flow(client: TestClient) -> None:
     )
     assert me_response.status_code == 200
     assert me_response.json()["email"] == "user@example.com"
+    assert me_response.json()["preferences"]["appearance"] == "dark"
 
     refresh_response = client.post(
         "/api/v1/auth/refresh",
@@ -144,6 +159,50 @@ def test_protected_resource_crud_flow(client: TestClient) -> None:
     )
     assert patch_goal_response.status_code == 200
     assert patch_goal_response.json()["current_amount"] == "300.00"
+
+
+def test_user_settings_fields_persist_via_users_me(client: TestClient) -> None:
+    auth = _signup_and_get_auth(client, "settingsuser@example.com")
+    headers = _auth_headers(auth["access_token"])
+
+    update_response = client.patch(
+        "/api/v1/users/me",
+        json={
+            "full_name": "Settings User",
+            "phone": "+97455555555",
+            "country": "Qatar",
+            "preferences": {
+                "month_start_day": 25,
+                "ai_suggestions_enabled": False,
+                "weekly_digest_enabled": True,
+                "savings_reminders_enabled": False,
+                "promotions_enabled": True,
+                "biometric_enabled": True,
+                "appearance": "dark",
+                "language": "Arabic",
+                "notifications_enabled": False,
+            },
+        },
+        headers=headers,
+    )
+    assert update_response.status_code == 200
+    body = update_response.json()
+    assert body["phone"] == "+97455555555"
+    assert body["country"] == "Qatar"
+    assert body["preferences"]["month_start_day"] == 25
+    assert body["preferences"]["ai_suggestions_enabled"] is False
+    assert body["preferences"]["weekly_digest_enabled"] is True
+    assert body["preferences"]["savings_reminders_enabled"] is False
+    assert body["preferences"]["promotions_enabled"] is True
+    assert body["preferences"]["biometric_enabled"] is True
+    assert body["preferences"]["appearance"] == "dark"
+    assert body["preferences"]["language"] == "Arabic"
+    assert body["preferences"]["notifications_enabled"] is False
+
+    me_response = client.get("/api/v1/users/me", headers=headers)
+    assert me_response.status_code == 200
+    assert me_response.json()["phone"] == "+97455555555"
+    assert me_response.json()["preferences"]["language"] == "Arabic"
 
 
 def test_income_transaction_supports_frequency_metadata(client: TestClient) -> None:
@@ -272,6 +331,114 @@ def test_history_endpoint_supports_filters_summary_and_pagination(client: TestCl
     assert groceries_search_body["summary"]["total_expense"] == "8040.00"
     assert groceries_search_body["items"][0]["category"]["name"] == "Groceries"
     assert groceries_search_body["items"][0]["category"]["icon"] == "shopping-basket"
+
+
+def test_dashboard_summary_returns_current_month_overview(client: TestClient) -> None:
+    auth = _signup_and_get_auth(client, "dashboard@example.com")
+    headers = _auth_headers(auth["access_token"])
+
+    categories = client.get("/api/v1/categories/", headers=headers).json()
+    groceries_category = next(category for category in categories if category["name"] == "Groceries")
+    transport_category = next(category for category in categories if category["name"] == "Transport")
+    salary_category = next(category for category in categories if category["name"] == "Salary")
+
+    today = date.today()
+    month_start = today.replace(day=1)
+    previous_month_day = month_start - timedelta(days=1)
+    second_current_month_day = today if today.day == 1 else today - timedelta(days=1)
+
+    payloads = [
+        {
+            "type": "income",
+            "amount": "5000.00",
+            "income_frequency": "monthly",
+            "category_id": salary_category["id"],
+            "title": "Acme Corp",
+            "note": "Current month salary",
+            "transaction_date": month_start.isoformat(),
+        },
+        {
+            "type": "expense",
+            "amount": "200.00",
+            "category_id": groceries_category["id"],
+            "title": "Carrefour",
+            "note": "Weekly groceries",
+            "transaction_date": today.isoformat(),
+        },
+        {
+            "type": "expense",
+            "amount": "100.00",
+            "category_id": transport_category["id"],
+            "title": "Uber",
+            "note": "Office commute",
+            "transaction_date": second_current_month_day.isoformat(),
+        },
+        {
+            "type": "expense",
+            "amount": "999.00",
+            "category_id": groceries_category["id"],
+            "title": "Old expense",
+            "note": "Previous month",
+            "transaction_date": previous_month_day.isoformat(),
+        },
+    ]
+
+    for payload in payloads:
+        response = client.post("/api/v1/transactions/", json=payload, headers=headers)
+        assert response.status_code == 201
+
+    goal_response = client.post(
+        "/api/v1/savings-goals/",
+        json={
+            "name": "Emergency Fund",
+            "description": "Keep building liquidity",
+            "target_amount": "1000.00",
+            "current_amount": "500.00",
+            "target_date": (today + timedelta(days=120)).isoformat(),
+            "priority": "high",
+            "status": "active",
+        },
+        headers=headers,
+    )
+    assert goal_response.status_code == 201
+
+    paused_goal_response = client.post(
+        "/api/v1/savings-goals/",
+        json={
+            "name": "Vacation",
+            "description": "Paused plan",
+            "target_amount": "3000.00",
+            "current_amount": "200.00",
+            "target_date": (today + timedelta(days=240)).isoformat(),
+            "priority": "medium",
+            "status": "paused",
+        },
+        headers=headers,
+    )
+    assert paused_goal_response.status_code == 201
+
+    dashboard_response = client.get("/api/v1/dashboard/summary", headers=headers)
+    assert dashboard_response.status_code == 200
+
+    body = dashboard_response.json()
+    assert body["month_label"] == today.strftime("%B %Y")
+    assert body["summary"] == {
+        "transaction_count": 3,
+        "total_income": "5000.00",
+        "total_expense": "300.00",
+        "net": "4700.00",
+    }
+    assert len(body["top_categories"]) == 2
+    assert body["top_categories"][0]["name"] == "Groceries"
+    assert body["top_categories"][0]["total_amount"] == "200.00"
+    assert body["top_categories"][0]["percentage"] == "66.7"
+    assert body["top_categories"][1]["name"] == "Transport"
+    assert len(body["recent_transactions"]) == 3
+    assert body["recent_transactions"][0]["title"] == "Carrefour"
+    assert all(item["title"] != "Old expense" for item in body["recent_transactions"])
+    assert body["active_goal"]["name"] == "Emergency Fund"
+    assert body["active_goal"]["progress_percentage"] == "50.0"
+    assert body["insight"].startswith("Groceries is leading your spending this month")
 
 
 def test_protected_endpoints_require_auth(client: TestClient) -> None:

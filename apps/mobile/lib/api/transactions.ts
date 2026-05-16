@@ -33,6 +33,17 @@ export type Transaction = {
 
 export type TransactionListResponse = {
   items: Transaction[];
+  summary: {
+    total_count: number;
+    total_income: string;
+    total_expense: string;
+    net: string;
+  };
+  meta: {
+    limit: number;
+    offset: number;
+    has_more: boolean;
+  };
 };
 
 export async function createTransaction(accessToken: string, payload: CreateTransactionPayload) {
@@ -50,4 +61,16 @@ export async function listTransactions(accessToken: string) {
   });
 
   return response.items;
+}
+
+export async function getTransactionHistory(
+  accessToken: string,
+  query = '',
+) {
+  const suffix = query ? `/transactions/?${query}` : '/transactions/';
+
+  return apiRequest<TransactionListResponse>(suffix, {
+    method: 'GET',
+    accessToken,
+  });
 }

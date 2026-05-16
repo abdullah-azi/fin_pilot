@@ -4,12 +4,13 @@ from decimal import Decimal
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import Select, case, func, or_, select
+from sqlalchemy import Select, and_, case, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.category import Category
 from app.models.enums import TransactionFrequency, TransactionType
 from app.models.transaction import Transaction
+from app.models.user_category_setting import UserCategorySetting
 from app.schemas.transaction import TransactionCreate, TransactionUpdate
 from app.services.categories import get_accessible_category
 
@@ -63,8 +64,20 @@ def list_transactions(
     )
 
     statement: Select[tuple[Transaction, str | None, str | None, str | None]] = (
-        select(Transaction, Category.name, Category.color, Category.icon)
+        select(
+            Transaction,
+            func.coalesce(UserCategorySetting.display_name, Category.name),
+            Category.color,
+            Category.icon,
+        )
         .outerjoin(Category, Transaction.category_id == Category.id)
+        .outerjoin(
+            UserCategorySetting,
+            and_(
+                UserCategorySetting.category_id == Category.id,
+                UserCategorySetting.user_id == user_id,
+            ),
+        )
         .where(*conditions)
         .order_by(Transaction.transaction_date.desc(), Transaction.created_at.desc())
         .offset(offset)
@@ -100,6 +113,13 @@ def list_transactions(
         )
         .select_from(Transaction)
         .outerjoin(Category, Transaction.category_id == Category.id)
+        .outerjoin(
+            UserCategorySetting,
+            and_(
+                UserCategorySetting.category_id == Category.id,
+                UserCategorySetting.user_id == user_id,
+            ),
+        )
         .where(*conditions)
     ).one()
 
@@ -225,6 +245,7 @@ def _build_transaction_filters(
             or_(
                 Transaction.title.ilike(like_pattern),
                 Transaction.note.ilike(like_pattern),
+                UserCategorySetting.display_name.ilike(like_pattern),
                 Category.name.ilike(like_pattern),
             )
         )
