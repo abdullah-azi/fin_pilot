@@ -1,5 +1,39 @@
 import { apiRequest } from '@/lib/api/client';
 
+export type GeneralAdvicePayload = {
+  question: string;
+};
+
+export type GeneralAdviceContext = {
+  currency_code: string;
+  currency_symbol: string;
+  month_label: string;
+  current_month_income: string;
+  current_month_expense: string;
+  current_month_net: string;
+  active_goal_count: number;
+  comfortable_monthly_savings: string;
+  behavior_label: string;
+  behavior_score: number;
+  top_spending_category: string | null;
+  savings_rate: string;
+};
+
+export type GeneralAdviceResponse = {
+  guidance: string;
+  provider: string;
+  model_name: string;
+  context: GeneralAdviceContext;
+};
+
+export async function generalChat(accessToken: string, payload: GeneralAdvicePayload) {
+  return apiRequest<GeneralAdviceResponse>('/ai/chat', {
+    accessToken,
+    body: payload,
+    method: 'POST',
+  });
+}
+
 export type PurchaseCheckPayload = {
   planned_amount: number;
   item_name: string;
@@ -8,6 +42,8 @@ export type PurchaseCheckPayload = {
 };
 
 export type PurchaseCheckContext = {
+  currency_code: string;
+  currency_symbol: string;
   month_label: string;
   planned_amount: string;
   item_name: string;
@@ -57,6 +93,8 @@ export type SavingsAdviceAllocation = {
 };
 
 export type SavingsAdviceContext = {
+  currency_code: string;
+  currency_symbol: string;
   month_label: string;
   current_month_income: string;
   current_month_expense: string;

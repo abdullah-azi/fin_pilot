@@ -605,9 +605,11 @@ function AuthToggleButton({
 }
 
 function LogoMark({ centered = false }: { centered?: boolean }) {
+  const width = centered ? 228 : 164;
+
   return (
     <View style={[styles.logoMark, centered ? styles.logoMarkCentered : null]}>
-      <FinPilotLogo showTagline={centered} width={centered ? 250 : 176} />
+      <FinPilotLogo showTagline={centered} width={width} />
     </View>
   );
 }
@@ -733,7 +735,7 @@ const styles = StyleSheet.create({
   logoRow: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.xl + 8,
+    marginBottom: spacing.lg + 10,
   },
   logoMark: {
     alignSelf: 'center',
@@ -741,6 +743,7 @@ const styles = StyleSheet.create({
   logoMarkCentered: {
     ...shadows.authLogo,
     alignSelf: 'center',
+    marginTop: -8,
   },
   heading: {
     color: AUTH_COLORS.text,

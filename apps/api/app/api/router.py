@@ -6,6 +6,7 @@ from app.api.v1.endpoints import (
     categories,
     dashboard,
     health,
+    imports,
     insights,
     savings_goals,
     transactions,
@@ -21,4 +22,5 @@ api_router.include_router(transactions.router, prefix="/transactions", tags=["tr
 api_router.include_router(savings_goals.router, prefix="/savings-goals", tags=["savings-goals"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 api_router.include_router(health.router, prefix="/health", tags=["health"])
+api_router.include_router(imports.router, prefix="/imports", tags=["imports"])
 api_router.include_router(insights.router, prefix="/insights", tags=["insights"])

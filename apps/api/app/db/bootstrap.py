@@ -69,6 +69,14 @@ def _sync_settings_profile_schema(bind_engine: Engine) -> None:
             text(
                 """
                 ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS profile_image_url VARCHAR(500)
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                ALTER TABLE users
                 ADD COLUMN IF NOT EXISTS phone VARCHAR(30)
                 """
             )

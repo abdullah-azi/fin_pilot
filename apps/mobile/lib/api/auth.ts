@@ -6,6 +6,14 @@ export type AuthUserPreferences = {
   monthly_savings_target: string | null;
   risk_style: string | null;
   preferred_ai_tone: string | null;
+  month_start_day: number;
+  ai_suggestions_enabled: boolean;
+  weekly_digest_enabled: boolean;
+  savings_reminders_enabled: boolean;
+  promotions_enabled: boolean;
+  biometric_enabled: boolean;
+  appearance: string;
+  language: string;
   notifications_enabled: boolean;
   default_currency: string | null;
   created_at: string;
@@ -16,6 +24,8 @@ export type AuthUser = {
   id: string;
   email: string;
   full_name: string | null;
+  phone: string | null;
+  profile_image_url: string | null;
   currency: string;
   country: string | null;
   is_active: boolean;

@@ -5,17 +5,80 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_ai_service, get_current_user, get_db
 from app.models.user import User
 from app.schemas.ai import (
+    AIReportSummaryContextResponse,
+    AIReportSummaryResponse,
+    GeneralAdviceContextResponse,
+    GeneralAdviceRequest,
+    GeneralAdviceResponse,
     PurchaseCheckContextResponse,
     PurchaseCheckRequest,
     PurchaseCheckResponse,
+    ReportSummaryRequest,
     SavingsAdviceAllocationResponse,
     SavingsAdviceContextResponse,
     SavingsAdviceRequest,
     SavingsAdviceResponse,
+    ReportSummaryTransactionResponse,
+    SpendingSummaryCategoryResponse,
+    SpendingSummaryContextResponse,
+    SpendingSummaryRequest,
+    SpendingSummaryResponse,
 )
-from app.services.ai.service import AIService, PurchaseCheckInput, SavingsAdviceInput
+from app.services.ai.service import (
+    AIService,
+    GeneralAdviceInput,
+    PurchaseCheckInput,
+    ReportSummaryInput,
+    SavingsAdviceInput,
+    SpendingSummaryInput,
+)
 
 router = APIRouter()
+
+
+@router.post("/chat", response_model=GeneralAdviceResponse)
+async def ai_general_chat(
+    payload: GeneralAdviceRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    ai_service: AIService = Depends(get_ai_service),
+) -> GeneralAdviceResponse:
+    try:
+        result = await ai_service.general_advice(
+            db,
+            user_id=current_user.id,
+            payload=GeneralAdviceInput(question=payload.question),
+        )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="AI provider request failed.",
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="AI provider returned an invalid response.",
+        ) from exc
+
+    return GeneralAdviceResponse(
+        guidance=result.guidance,
+        provider=result.provider,
+        model_name=result.model_name,
+        context=GeneralAdviceContextResponse(
+            currency_code=result.context.currency_code,
+            currency_symbol=result.context.currency_symbol,
+            month_label=result.context.month_label,
+            current_month_income=result.context.current_month_income,
+            current_month_expense=result.context.current_month_expense,
+            current_month_net=result.context.current_month_net,
+            active_goal_count=result.context.active_goal_count,
+            comfortable_monthly_savings=result.context.comfortable_monthly_savings,
+            behavior_label=result.context.behavior_label,
+            behavior_score=result.context.behavior_score,
+            top_spending_category=result.context.top_spending_category,
+            savings_rate=result.context.savings_rate,
+        ),
+    )
 
 
 @router.post("/purchase-check", response_model=PurchaseCheckResponse)
@@ -54,6 +117,8 @@ async def ai_purchase_check(
         provider=result.provider,
         model_name=result.model_name,
         context=PurchaseCheckContextResponse(
+            currency_code=result.context.currency_code,
+            currency_symbol=result.context.currency_symbol,
             month_label=result.context.month_label,
             planned_amount=result.context.planned_amount,
             item_name=result.context.item_name,
@@ -106,6 +171,8 @@ async def ai_savings_advice(
         provider=result.provider,
         model_name=result.model_name,
         context=SavingsAdviceContextResponse(
+            currency_code=result.context.currency_code,
+            currency_symbol=result.context.currency_symbol,
             month_label=result.context.month_label,
             current_month_income=result.context.current_month_income,
             current_month_expense=result.context.current_month_expense,
@@ -129,6 +196,118 @@ async def ai_savings_advice(
                     pace_status=allocation.pace_status,
                 )
                 for allocation in result.context.allocations
+            ],
+        ),
+    )
+
+
+@router.post("/spending-summary", response_model=SpendingSummaryResponse)
+async def ai_spending_summary(
+    payload: SpendingSummaryRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    ai_service: AIService = Depends(get_ai_service),
+) -> SpendingSummaryResponse:
+    try:
+        result = await ai_service.spending_summary(
+            db,
+            user_id=current_user.id,
+            payload=SpendingSummaryInput(
+                question=payload.question,
+                months=payload.months,
+            ),
+        )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="AI provider request failed.",
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="AI provider returned an invalid response.",
+        ) from exc
+
+    return SpendingSummaryResponse(
+        guidance=result.guidance,
+        provider=result.provider,
+        model_name=result.model_name,
+        context=SpendingSummaryContextResponse(
+            currency_code=result.context.currency_code,
+            currency_symbol=result.context.currency_symbol,
+            period_label=result.context.period_label,
+            total_spent=result.context.total_spent,
+            behavior_label=result.context.behavior_label,
+            behavior_score=result.context.behavior_score,
+            planned_buys=result.context.planned_buys,
+            impulse_buys=result.context.impulse_buys,
+            overspent_days=result.context.overspent_days,
+            strongest_insight_title=result.context.strongest_insight_title,
+            strongest_insight_description=result.context.strongest_insight_description,
+            top_categories=[
+                SpendingSummaryCategoryResponse(
+                    name=category.name,
+                    total_amount=category.total_amount,
+                    percentage=category.percentage,
+                    trend_direction=category.trend_direction,
+                )
+                for category in result.context.top_categories
+            ],
+        ),
+    )
+
+
+@router.post("/report-summary", response_model=AIReportSummaryResponse)
+async def ai_report_summary(
+    payload: ReportSummaryRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    ai_service: AIService = Depends(get_ai_service),
+) -> AIReportSummaryResponse:
+    try:
+        result = await ai_service.report_summary(
+            db,
+            user_id=current_user.id,
+            payload=ReportSummaryInput(
+                question=payload.question,
+                months=payload.months,
+            ),
+        )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="AI provider request failed.",
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="AI provider returned an invalid response.",
+        ) from exc
+
+    return AIReportSummaryResponse(
+        guidance=result.guidance,
+        provider=result.provider,
+        model_name=result.model_name,
+        context=AIReportSummaryContextResponse(
+            currency_code=result.context.currency_code,
+            currency_symbol=result.context.currency_symbol,
+            period_label=result.context.period_label,
+            total_income=result.context.total_income,
+            total_expense=result.context.total_expense,
+            net_saved=result.context.net_saved,
+            transaction_count=result.context.transaction_count,
+            savings_rate=result.context.savings_rate,
+            savings_rate_delta=result.context.savings_rate_delta,
+            top_category_name=result.context.top_category_name,
+            top_category_total_amount=result.context.top_category_total_amount,
+            largest_transactions=[
+                ReportSummaryTransactionResponse(
+                    title=item.title,
+                    amount=item.amount,
+                    transaction_date=item.transaction_date.isoformat(),
+                    category_name=item.category_name,
+                )
+                for item in result.context.largest_transactions
             ],
         ),
     )

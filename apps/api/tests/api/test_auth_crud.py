@@ -62,7 +62,31 @@ def test_auth_signup_login_and_me_flow(client: TestClient) -> None:
         json={"refresh_token": refresh_token},
     )
     assert refresh_response.status_code == 200
-    assert refresh_response.json()["access_token"] != access_token
+    refreshed_access_token = refresh_response.json()["access_token"]
+    assert refreshed_access_token != access_token
+
+    change_password_response = client.post(
+        "/api/v1/users/me/change-password",
+        json={
+            "current_password": "supersecure123",
+            "new_password": "newsupersecure123",
+        },
+        headers={"Authorization": f"Bearer {refreshed_access_token}"},
+    )
+    assert change_password_response.status_code == 200
+    assert change_password_response.json() == {"status": "password_changed"}
+
+    old_login_response = client.post(
+        "/api/v1/auth/login",
+        json={"email": "user@example.com", "password": "supersecure123"},
+    )
+    assert old_login_response.status_code == 401
+
+    new_login_response = client.post(
+        "/api/v1/auth/login",
+        json={"email": "user@example.com", "password": "newsupersecure123"},
+    )
+    assert new_login_response.status_code == 200
 
 
 def test_auth_email_is_case_insensitive(client: TestClient) -> None:
@@ -84,6 +108,32 @@ def test_auth_email_is_case_insensitive(client: TestClient) -> None:
     )
     assert login_response.status_code == 200
     assert login_response.json()["user"]["email"] == "caseuser@example.com"
+
+
+def test_profile_image_upload_and_delete(client: TestClient) -> None:
+    auth = _signup_and_get_auth(client, "avatar@example.com")
+    headers = _auth_headers(auth["access_token"])
+
+    upload_response = client.post(
+        "/api/v1/users/me/profile-image",
+        files={"file": ("avatar.png", b"\x89PNG\r\n\x1a\nfakepng", "image/png")},
+        headers=headers,
+    )
+    assert upload_response.status_code == 200
+    uploaded_url = upload_response.json()["profile_image_url"]
+    assert uploaded_url.startswith("/uploads/profile-images/")
+
+    me_response = client.get("/api/v1/users/me", headers=headers)
+    assert me_response.status_code == 200
+    assert me_response.json()["profile_image_url"] == uploaded_url
+
+    delete_response = client.delete("/api/v1/users/me/profile-image", headers=headers)
+    assert delete_response.status_code == 200
+    assert delete_response.json() == {"status": "profile_image_deleted"}
+
+    me_response_after_delete = client.get("/api/v1/users/me", headers=headers)
+    assert me_response_after_delete.status_code == 200
+    assert me_response_after_delete.json()["profile_image_url"] is None
 
 
 def test_protected_resource_crud_flow(client: TestClient) -> None:
@@ -331,6 +381,37 @@ def test_history_endpoint_supports_filters_summary_and_pagination(client: TestCl
     assert groceries_search_body["summary"]["total_expense"] == "8040.00"
     assert groceries_search_body["items"][0]["category"]["name"] == "Groceries"
     assert groceries_search_body["items"][0]["category"]["icon"] == "shopping-basket"
+
+
+def test_transactions_delete_all_removes_user_history(client: TestClient) -> None:
+    auth = _signup_and_get_auth(client, "bulkdelete@example.com")
+    headers = _auth_headers(auth["access_token"])
+
+    categories = client.get("/api/v1/categories/", headers=headers).json()
+    groceries_category = next(category for category in categories if category["name"] == "Groceries")
+
+    for amount in ("120.00", "250.00"):
+        response = client.post(
+            "/api/v1/transactions/",
+            json={
+                "type": "expense",
+                "amount": amount,
+                "category_id": groceries_category["id"],
+                "title": "Grocery run",
+                "transaction_date": "2026-05-16",
+            },
+            headers=headers,
+        )
+        assert response.status_code == 201
+
+    delete_response = client.delete("/api/v1/transactions/all", headers=headers)
+    assert delete_response.status_code == 200
+    assert delete_response.json() == {"deleted_count": 2, "status": "deleted"}
+
+    list_response = client.get("/api/v1/transactions/", headers=headers)
+    assert list_response.status_code == 200
+    assert list_response.json()["items"] == []
+    assert list_response.json()["summary"]["total_count"] == 0
 
 
 def test_dashboard_summary_returns_current_month_overview(client: TestClient) -> None:

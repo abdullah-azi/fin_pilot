@@ -78,6 +78,25 @@ def test_reports_endpoint_returns_cashflow_category_table_and_largest_transactio
     assert largest_titles == ["Carrefour", "Metro", "New shirt"]
 
 
+def test_reports_export_supports_csv_and_pdf(client: TestClient) -> None:
+    headers = _auth_headers(_signup_and_get_auth(client, "exports@example.com")["access_token"])
+    _seed_analytics_transactions(client, headers)
+
+    csv_response = client.get("/api/v1/insights/export?format=csv&months=4", headers=headers)
+    assert csv_response.status_code == 200
+    assert csv_response.headers["content-type"].startswith("text/csv")
+    assert "attachment; filename=" in csv_response.headers["content-disposition"]
+    csv_text = csv_response.text
+    assert "FinPilot Report" in csv_text
+    assert "Monthly Overview" in csv_text
+    assert "Largest Transactions" in csv_text
+
+    pdf_response = client.get("/api/v1/insights/export?format=pdf&months=4", headers=headers)
+    assert pdf_response.status_code == 200
+    assert pdf_response.headers["content-type"].startswith("application/pdf")
+    assert pdf_response.content.startswith(b"%PDF-1.4")
+
+
 def _seed_analytics_transactions(client: TestClient, headers: dict[str, str]) -> None:
     categories = client.get("/api/v1/categories/", headers=headers).json()
 

@@ -71,3 +71,8 @@ class TransactionListResponse(BaseModel):
     items: list[TransactionHistoryItemResponse]
     summary: TransactionHistorySummary
     meta: TransactionListMeta
+
+
+class TransactionBulkDeleteResponse(BaseModel):
+    deleted_count: int
+    status: str = "deleted"

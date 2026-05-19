@@ -4,6 +4,32 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 
+class GeneralAdviceRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=500)
+
+
+class GeneralAdviceContextResponse(BaseModel):
+    currency_code: str
+    currency_symbol: str
+    month_label: str
+    current_month_income: Decimal
+    current_month_expense: Decimal
+    current_month_net: Decimal
+    active_goal_count: int
+    comfortable_monthly_savings: Decimal
+    behavior_label: str
+    behavior_score: int
+    top_spending_category: str | None = None
+    savings_rate: Decimal
+
+
+class GeneralAdviceResponse(BaseModel):
+    guidance: str
+    provider: str
+    model_name: str
+    context: GeneralAdviceContextResponse
+
+
 class PurchaseCheckRequest(BaseModel):
     planned_amount: Decimal = Field(gt=0)
     item_name: str = Field(min_length=1, max_length=120)
@@ -12,6 +38,8 @@ class PurchaseCheckRequest(BaseModel):
 
 
 class PurchaseCheckContextResponse(BaseModel):
+    currency_code: str
+    currency_symbol: str
     month_label: str
     planned_amount: Decimal
     item_name: str
@@ -53,6 +81,8 @@ class SavingsAdviceAllocationResponse(BaseModel):
 
 
 class SavingsAdviceContextResponse(BaseModel):
+    currency_code: str
+    currency_symbol: str
     month_label: str
     current_month_income: Decimal
     current_month_expense: Decimal
@@ -75,3 +105,71 @@ class SavingsAdviceResponse(BaseModel):
     provider: str
     model_name: str
     context: SavingsAdviceContextResponse
+
+
+class SpendingSummaryRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=500)
+    months: int = Field(default=4, ge=2, le=12)
+
+
+class SpendingSummaryCategoryResponse(BaseModel):
+    name: str
+    total_amount: Decimal
+    percentage: Decimal
+    trend_direction: str
+
+
+class SpendingSummaryContextResponse(BaseModel):
+    currency_code: str
+    currency_symbol: str
+    period_label: str
+    total_spent: Decimal
+    behavior_label: str
+    behavior_score: int
+    planned_buys: int
+    impulse_buys: int
+    overspent_days: int
+    strongest_insight_title: str | None = None
+    strongest_insight_description: str | None = None
+    top_categories: list[SpendingSummaryCategoryResponse]
+
+
+class SpendingSummaryResponse(BaseModel):
+    guidance: str
+    provider: str
+    model_name: str
+    context: SpendingSummaryContextResponse
+
+
+class ReportSummaryRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=500)
+    months: int = Field(default=4, ge=2, le=12)
+
+
+class ReportSummaryTransactionResponse(BaseModel):
+    title: str
+    amount: Decimal
+    transaction_date: str
+    category_name: str | None = None
+
+
+class AIReportSummaryContextResponse(BaseModel):
+    currency_code: str
+    currency_symbol: str
+    period_label: str
+    total_income: Decimal
+    total_expense: Decimal
+    net_saved: Decimal
+    transaction_count: int
+    savings_rate: Decimal
+    savings_rate_delta: Decimal | None = None
+    top_category_name: str | None = None
+    top_category_total_amount: Decimal | None = None
+    largest_transactions: list[ReportSummaryTransactionResponse]
+
+
+class AIReportSummaryResponse(BaseModel):
+    guidance: str
+    provider: str
+    model_name: str
+    context: AIReportSummaryContextResponse

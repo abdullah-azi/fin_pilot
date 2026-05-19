@@ -14,8 +14,10 @@ import {
 
 import { authPalette } from '@/constants/theme';
 import {
+  generalChat,
   purchaseCheck,
   savingsAdvice,
+  type GeneralAdviceResponse,
   type PurchaseCheckResponse,
   type SavingsAdviceResponse,
 } from '@/lib/api/ai';
@@ -26,7 +28,7 @@ import { useAuth } from '@/providers/AuthProvider';
 
 const COLORS = authPalette;
 
-type AssistantMode = 'purchase' | 'savings';
+type AssistantMode = 'chat' | 'purchase' | 'savings';
 
 type PromptPreset = {
   amount?: string;
@@ -34,6 +36,15 @@ type PromptPreset = {
   label: string;
   mode: AssistantMode;
   question: string;
+};
+
+type ChatConversationTurn = {
+  id: string;
+  kind: 'chat';
+  request: {
+    question: string;
+  };
+  response: GeneralAdviceResponse;
 };
 
 type PurchaseConversationTurn = {
@@ -58,9 +69,31 @@ type SavingsConversationTurn = {
   response: SavingsAdviceResponse;
 };
 
-type ConversationTurn = PurchaseConversationTurn | SavingsConversationTurn;
+type ConversationTurn = ChatConversationTurn | PurchaseConversationTurn | SavingsConversationTurn;
 
 const QUICK_PROMPTS: Record<AssistantMode, PromptPreset[]> = {
+  chat: [
+    {
+      label: 'What should I focus on this month?',
+      mode: 'chat',
+      question: 'What should I focus on this month?',
+    },
+    {
+      label: 'Am I spending too much lately?',
+      mode: 'chat',
+      question: 'Am I spending too much lately?',
+    },
+    {
+      label: 'What is my biggest money weakness right now?',
+      mode: 'chat',
+      question: 'What is my biggest money weakness right now?',
+    },
+    {
+      label: 'Give me one simple action for this week',
+      mode: 'chat',
+      question: 'Give me one simple action I should take this week.',
+    },
+  ],
   purchase: [
     {
       amount: '15000',
@@ -82,13 +115,6 @@ const QUICK_PROMPTS: Record<AssistantMode, PromptPreset[]> = {
       label: 'Should I wait until salary for a new phone?',
       mode: 'purchase',
       question: 'Is it smarter to wait until salary before buying a new phone?',
-    },
-    {
-      amount: '5800',
-      itemName: 'monthly installment',
-      label: 'Would installments be safer for this purchase?',
-      mode: 'purchase',
-      question: 'Would installments be a safer option for this purchase?',
     },
   ],
   savings: [
@@ -117,7 +143,7 @@ const QUICK_PROMPTS: Record<AssistantMode, PromptPreset[]> = {
 
 export default function AskAIScreen() {
   const { getValidAccessToken, user } = useAuth();
-  const [mode, setMode] = useState<AssistantMode>('purchase');
+  const [mode, setMode] = useState<AssistantMode>('chat');
   const [categories, setCategories] = useState<Category[]>([]);
   const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -141,11 +167,7 @@ export default function AskAIScreen() {
   const currencyCode = (user?.currency ?? 'PKR').toUpperCase();
   const canSubmit = useMemo(() => {
     if (mode === 'purchase') {
-      return (
-        question.trim().length > 0 &&
-        itemName.trim().length > 0 &&
-        Number(plannedAmount) > 0
-      );
+      return question.trim().length > 0 && itemName.trim().length > 0 && Number(plannedAmount) > 0;
     }
 
     return question.trim().length > 0;
@@ -187,12 +209,8 @@ export default function AskAIScreen() {
   function applyPrompt(prompt: PromptPreset) {
     setMode(prompt.mode);
     setQuestion(prompt.question);
-    if (prompt.itemName) {
-      setItemName(prompt.itemName);
-    }
-    if (prompt.amount) {
-      setPlannedAmount(prompt.amount);
-    }
+    setItemName(prompt.itemName ?? '');
+    setPlannedAmount(prompt.amount ?? '');
     setError(null);
   }
 
@@ -201,7 +219,7 @@ export default function AskAIScreen() {
       setError(
         mode === 'purchase'
           ? 'Add an item, amount, and question first.'
-          : 'Enter a savings question first.',
+          : 'Enter your question first.',
       );
       return;
     }
@@ -215,7 +233,21 @@ export default function AskAIScreen() {
         throw new Error('Your session expired. Please log in again.');
       }
 
-      if (mode === 'purchase') {
+      if (mode === 'chat') {
+        const response = await generalChat(accessToken, {
+          question: question.trim(),
+        });
+
+        setConversation((current) => [
+          ...current,
+          {
+            id: `${Date.now()}`,
+            kind: 'chat',
+            request: { question: question.trim() },
+            response,
+          },
+        ]);
+      } else if (mode === 'purchase') {
         const response = await purchaseCheck(accessToken, {
           planned_amount: Number(plannedAmount),
           item_name: itemName.trim(),
@@ -282,30 +314,17 @@ export default function AskAIScreen() {
             <Text style={styles.statusText}>{headerSubtitle}</Text>
           </View>
         </View>
-        <Pressable style={styles.headerAction}>
-          <FontAwesome color="#555555" name="ellipsis-v" size={16} />
-        </Pressable>
       </View>
 
       <View style={styles.modeRow}>
+        <ModePill active={mode === 'chat'} icon="commenting" label="Chat" onPress={() => setMode('chat')} />
         <ModePill
           active={mode === 'purchase'}
           icon="shopping-cart"
-          label="Purchase check"
-          onPress={() => {
-            setError(null);
-            setMode('purchase');
-          }}
+          label="Purchase"
+          onPress={() => setMode('purchase')}
         />
-        <ModePill
-          active={mode === 'savings'}
-          icon="money"
-          label="Savings advice"
-          onPress={() => {
-            setError(null);
-            setMode('savings');
-          }}
-        />
+        <ModePill active={mode === 'savings'} icon="money" label="Savings" onPress={() => setMode('savings')} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -315,11 +334,7 @@ export default function AskAIScreen() {
               <FontAwesome color={COLORS.violet} name="android" size={24} />
             </View>
             <Text style={styles.emptyTitle}>Ask me anything</Text>
-            <Text style={styles.emptyText}>
-              {mode === 'purchase'
-                ? 'I know your income, spending, and habits. Start with a purchase question and I will check if it fits.'
-                : 'I know your goals, monthly cushion, and savings pressure. Ask how to prioritize or pace your savings.'}
-            </Text>
+            <Text style={styles.emptyText}>{getEmptyStateCopy(mode)}</Text>
           </View>
         ) : (
           <View style={styles.chatBody}>
@@ -335,7 +350,9 @@ export default function AskAIScreen() {
                   </View>
                 </View>
 
-                {turn.kind === 'purchase' ? (
+                {turn.kind === 'chat' ? (
+                  <GeneralResponseCard currencyCode={currencyCode} response={turn.response} />
+                ) : turn.kind === 'purchase' ? (
                   <PurchaseResponseCard currencyCode={currencyCode} response={turn.response} />
                 ) : (
                   <SavingsResponseCard currencyCode={currencyCode} response={turn.response} />
@@ -371,45 +388,28 @@ export default function AskAIScreen() {
           <View style={styles.detailsCard}>
             <View style={styles.detailsHeader}>
               <Text style={styles.sectionLabel}>PURCHASE DETAILS</Text>
-              <Text style={styles.detailsHelper}>Used for grounded AI answers</Text>
+              <Text style={styles.detailsHelper}>Used for grounded answers</Text>
             </View>
 
             <View style={styles.detailsGrid}>
-              <View style={styles.fieldBlock}>
-                <Text style={styles.fieldLabel}>ITEM</Text>
-                <TextInput
-                  autoCapitalize="sentences"
-                  autoCorrect={false}
-                  placeholder="New phone"
-                  placeholderTextColor="#3A3A3A"
-                  selectionColor={COLORS.violet}
-                  style={styles.fieldInput}
-                  value={itemName}
-                  onChangeText={setItemName}
-                />
-              </View>
-
-              <View style={styles.fieldBlock}>
-                <Text style={styles.fieldLabel}>AMOUNT ({currencyCode})</Text>
-                <TextInput
-                  keyboardType="decimal-pad"
-                  placeholder="65000"
-                  placeholderTextColor="#3A3A3A"
-                  selectionColor={COLORS.violet}
-                  style={styles.fieldInput}
-                  value={plannedAmount}
-                  onChangeText={(value) => setPlannedAmount(sanitizeAmount(value))}
-                />
-              </View>
+              <FieldBlock
+                label="ITEM"
+                placeholder="New phone"
+                value={itemName}
+                onChangeText={setItemName}
+              />
+              <FieldBlock
+                keyboardType="decimal-pad"
+                label={`AMOUNT (${currencyCode})`}
+                placeholder="65000"
+                value={plannedAmount}
+                onChangeText={(value) => setPlannedAmount(sanitizeAmount(value))}
+              />
             </View>
 
             <View style={styles.fieldBlock}>
               <Text style={styles.fieldLabel}>CATEGORY</Text>
-              <Pressable
-                disabled={isLoadingData}
-                onPress={() => setCategoryModalOpen(true)}
-                style={styles.selectorButton}
-              >
+              <Pressable disabled={isLoadingData} onPress={() => setCategoryModalOpen(true)} style={styles.selectorButton}>
                 <View style={styles.selectorTextWrap}>
                   <FontAwesome
                     color={selectedCategory?.color ?? COLORS.violetBright}
@@ -428,25 +428,21 @@ export default function AskAIScreen() {
               </Pressable>
             </View>
           </View>
-        ) : (
+        ) : null}
+
+        {mode === 'savings' ? (
           <View style={styles.detailsCard}>
             <View style={styles.detailsHeader}>
               <Text style={styles.sectionLabel}>SAVINGS CONTEXT</Text>
-              <Text style={styles.detailsHelper}>Optional goal focus for sharper advice</Text>
+              <Text style={styles.detailsHelper}>Optional goal focus</Text>
             </View>
 
             <View style={styles.fieldBlock}>
               <Text style={styles.fieldLabel}>FOCUS GOAL</Text>
-              <Pressable
-                disabled={isLoadingData}
-                onPress={() => setGoalModalOpen(true)}
-                style={styles.selectorButton}
-              >
+              <Pressable disabled={isLoadingData} onPress={() => setGoalModalOpen(true)} style={styles.selectorButton}>
                 <View style={styles.selectorTextWrap}>
                   <FontAwesome color={COLORS.green} name="flag" size={14} />
-                  <Text style={styles.selectorText}>
-                    {selectedGoal?.name ?? 'Ask about all active goals'}
-                  </Text>
+                  <Text style={styles.selectorText}>{selectedGoal?.name ?? 'Ask about all active goals'}</Text>
                 </View>
                 {isLoadingData ? (
                   <ActivityIndicator color={COLORS.violetBright} size="small" />
@@ -455,24 +451,8 @@ export default function AskAIScreen() {
                 )}
               </Pressable>
             </View>
-
-            <View style={styles.infoCard}>
-              <MetricRow label="Active goals" value={`${savingsGoals.length}`} />
-              <MetricRow
-                label="Selected target"
-                value={
-                  selectedGoal
-                    ? `${formatMoney(selectedGoal.current_amount, currencyCode)} / ${formatMoney(selectedGoal.target_amount, currencyCode)}`
-                    : 'All goals'
-                }
-              />
-              <MetricRow
-                label="Deadline"
-                value={selectedGoal?.target_date ? formatShortDate(selectedGoal.target_date) : 'No target date'}
-              />
-            </View>
           </View>
-        )}
+        ) : null}
 
         <View style={styles.quickPromptsSection}>
           <Text style={styles.sectionLabel}>SUGGESTED QUESTIONS</Text>
@@ -480,8 +460,8 @@ export default function AskAIScreen() {
             {QUICK_PROMPTS[mode].map((prompt) => (
               <Pressable key={prompt.label} onPress={() => applyPrompt(prompt)} style={styles.promptChip}>
                 <FontAwesome
-                  color={mode === 'purchase' ? COLORS.violetBright : COLORS.green}
-                  name={mode === 'purchase' ? 'commenting' : 'money'}
+                  color={mode === 'purchase' ? COLORS.violetBright : mode === 'savings' ? COLORS.green : COLORS.violetBright}
+                  name={mode === 'savings' ? 'money' : 'commenting'}
                   size={13}
                 />
                 <Text style={styles.promptText}>{prompt.label}</Text>
@@ -498,14 +478,11 @@ export default function AskAIScreen() {
       </ScrollView>
 
       <View style={styles.composerRow}>
-        <Pressable style={styles.micButton}>
-          <FontAwesome color="#666666" name="microphone" size={14} />
-        </Pressable>
         <TextInput
           autoCapitalize="sentences"
           autoCorrect={false}
           multiline
-          placeholder={mode === 'purchase' ? 'Ask about this purchase...' : 'Ask about your savings plan...'}
+          placeholder={getComposerPlaceholder(mode)}
           placeholderTextColor="#3A3A3A"
           selectionColor={COLORS.violet}
           style={styles.composerInput}
@@ -551,6 +528,77 @@ export default function AskAIScreen() {
   );
 }
 
+function GeneralResponseCard({
+  currencyCode,
+  response,
+}: {
+  currencyCode: string;
+  response: GeneralAdviceResponse;
+}) {
+  return (
+    <View style={styles.messageRow}>
+      <View style={styles.aiBubbleAvatar}>
+        <FontAwesome color="#FFFFFF" name="android" size={11} />
+      </View>
+      <View style={styles.snapshotCard}>
+        <Text style={styles.snapshotTitle}>YOUR MONEY SNAPSHOT</Text>
+        <MetricRow label="Net this month" tone="positive" value={formatMoney(response.context.current_month_net, currencyCode)} />
+        <MetricRow label="Behavior" value={`${response.context.behavior_label} (${response.context.behavior_score})`} />
+        <MetricRow label="Active goals" value={`${response.context.active_goal_count}`} />
+        <MetricRow label="Savings rate" value={`${Number(response.context.savings_rate).toFixed(0)}%`} />
+      </View>
+    </View>
+  );
+}
+
+function PurchaseResponseCard({
+  currencyCode,
+  response,
+}: {
+  currencyCode: string;
+  response: PurchaseCheckResponse;
+}) {
+  const tone = response.verdict;
+
+  return (
+    <View style={styles.messageRow}>
+      <View style={styles.aiBubbleAvatar}>
+        <FontAwesome color="#FFFFFF" name="android" size={11} />
+      </View>
+      <View style={styles.snapshotCard}>
+        <Text style={styles.snapshotTitle}>PURCHASE CHECK</Text>
+        <MetricRow label="Net this month" tone="positive" value={formatMoney(response.context.current_month_net, currencyCode)} />
+        <MetricRow label="Planned amount" value={formatMoney(response.context.planned_amount, currencyCode)} />
+        <MetricRow label="Category" value={response.context.category_name ?? 'General'} />
+        <MetricRow label="Verdict" tone={tone === 'safe' ? 'positive' : tone === 'caution' ? 'warning' : 'danger'} value={formatVerdict(response.verdict)} />
+      </View>
+    </View>
+  );
+}
+
+function SavingsResponseCard({
+  currencyCode,
+  response,
+}: {
+  currencyCode: string;
+  response: SavingsAdviceResponse;
+}) {
+  return (
+    <View style={styles.messageRow}>
+      <View style={styles.aiBubbleAvatar}>
+        <FontAwesome color="#FFFFFF" name="android" size={11} />
+      </View>
+      <View style={styles.snapshotCard}>
+        <Text style={styles.snapshotTitle}>SAVINGS SNAPSHOT</Text>
+        <MetricRow label="Monthly cushion" tone="positive" value={formatMoney(response.context.comfortable_monthly_savings, currencyCode)} />
+        <MetricRow label="Goals" value={`${response.context.active_goal_count}`} />
+        <MetricRow label="Need / month" value={formatMoney(response.context.total_goal_monthly_required, currencyCode)} />
+        <MetricRow label="Overall progress" value={`${Number(response.context.overall_goal_progress).toFixed(0)}%`} />
+      </View>
+    </View>
+  );
+}
+
 function ModePill({
   active,
   icon,
@@ -570,178 +618,33 @@ function ModePill({
   );
 }
 
-function PurchaseResponseCard({
-  currencyCode,
-  response,
+function FieldBlock({
+  keyboardType,
+  label,
+  placeholder,
+  value,
+  onChangeText,
 }: {
-  currencyCode: string;
-  response: PurchaseCheckResponse;
+  keyboardType?: 'decimal-pad' | 'default';
+  label: string;
+  placeholder: string;
+  value: string;
+  onChangeText: (value: string) => void;
 }) {
   return (
-    <View style={styles.messageRow}>
-      <View style={styles.aiBubbleAvatar}>
-        <FontAwesome color="#FFFFFF" name="android" size={11} />
-      </View>
-      <View style={styles.snapshotCard}>
-        <Text style={styles.snapshotTitle}>YOUR FINANCIAL SNAPSHOT</Text>
-        <MetricRow
-          label="Balance right now"
-          tone="positive"
-          value={formatMoney(response.context.current_month_net, currencyCode)}
-        />
-        <MetricRow
-          label="Spent this month"
-          tone="warning"
-          value={formatMoney(response.context.current_month_expense, currencyCode)}
-        />
-        <MetricRow
-          label="Goal pressure"
-          value={`${response.context.active_goal_count} active · ${formatMoney(response.context.total_goal_monthly_required, currencyCode)}/mo`}
-        />
-        <MetricRow
-          label="After this purchase"
-          tone={response.verdict === 'safe' ? 'positive' : 'danger'}
-          value={formatMoney(
-            (
-              Number(response.context.current_month_net) - Number(response.context.planned_amount)
-            ).toFixed(2),
-            currencyCode,
-          )}
-        />
-
-        {response.context.category_budget_limit ? (
-          <>
-            <View style={styles.snapshotDivider} />
-            <MetricRow
-              label={`${response.context.category_name ?? 'Category'} budget`}
-              value={`${formatMoney(response.context.current_category_spend ?? '0', currencyCode)} / ${formatMoney(response.context.category_budget_limit, currencyCode)}`}
-            />
-          </>
-        ) : null}
-
-        <VerdictCallout
-          copy={response.context.suggested_action}
-          tone={response.verdict}
-          title={formatVerdict(response.verdict)}
-        />
-      </View>
-    </View>
-  );
-}
-
-function SavingsResponseCard({
-  currencyCode,
-  response,
-}: {
-  currencyCode: string;
-  response: SavingsAdviceResponse;
-}) {
-  const tone = response.context.can_fund_all_goals_on_time ? 'safe' : 'caution';
-
-  return (
-    <View style={styles.messageRow}>
-      <View style={styles.aiBubbleAvatar}>
-        <FontAwesome color="#FFFFFF" name="android" size={11} />
-      </View>
-      <View style={styles.snapshotCard}>
-        <Text style={styles.snapshotTitle}>YOUR SAVINGS SNAPSHOT</Text>
-        <MetricRow
-          label="Balance right now"
-          tone="positive"
-          value={formatMoney(response.context.current_month_net, currencyCode)}
-        />
-        <MetricRow
-          label="Comfortable to save"
-          tone="positive"
-          value={`${formatMoney(response.context.comfortable_monthly_savings, currencyCode)}/mo`}
-        />
-        <MetricRow
-          label="Goals this month"
-          tone={response.context.can_fund_all_goals_on_time ? 'positive' : 'warning'}
-          value={`${formatMoney(response.context.total_goal_monthly_required, currencyCode)}/mo`}
-        />
-        <MetricRow
-          label="Overall progress"
-          value={`${Number(response.context.overall_goal_progress).toFixed(0)}%`}
-        />
-
-        {response.context.focus_goal_name ? (
-          <>
-            <View style={styles.snapshotDivider} />
-            <MetricRow label="Focus goal" value={response.context.focus_goal_name} />
-            <MetricRow
-              label="Required pace"
-              value={`${formatMoney(response.context.focus_goal_monthly_required ?? '0', currencyCode)}/mo`}
-            />
-            <MetricRow
-              label="Pace status"
-              tone={mapPaceTone(response.context.focus_goal_pace_status)}
-              value={formatPaceStatus(response.context.focus_goal_pace_status)}
-            />
-          </>
-        ) : null}
-
-        <VerdictCallout
-          copy={response.context.recommendation_text}
-          tone={tone}
-          title={tone === 'safe' ? 'Plan looks solid' : 'Needs prioritizing'}
-        />
-
-        {response.context.allocations.length > 0 ? (
-          <View style={styles.allocationWrap}>
-            {response.context.allocations.slice(0, 2).map((allocation) => (
-              <View key={allocation.goal_id} style={styles.allocationChip}>
-                <Text style={styles.allocationTitle}>{allocation.name}</Text>
-                <Text style={styles.allocationValue}>
-                  {formatMoney(allocation.recommended_monthly_contribution, currencyCode)}/mo
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
-      </View>
-    </View>
-  );
-}
-
-function VerdictCallout({
-  copy,
-  title,
-  tone,
-}: {
-  copy: string;
-  title: string;
-  tone: 'caution' | 'not_recommended' | 'safe';
-}) {
-  return (
-    <View
-      style={[
-        styles.verdictCard,
-        tone === 'safe'
-          ? styles.verdictSafe
-          : tone === 'caution'
-            ? styles.verdictWarn
-            : styles.verdictDanger,
-      ]}
-    >
-      <FontAwesome
-        color={tone === 'safe' ? COLORS.green : tone === 'caution' ? COLORS.amber : COLORS.danger}
-        name={getVerdictIcon(tone)}
-        size={14}
+    <View style={styles.fieldBlock}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <TextInput
+        autoCapitalize="sentences"
+        autoCorrect={false}
+        keyboardType={keyboardType}
+        placeholder={placeholder}
+        placeholderTextColor="#3A3A3A"
+        selectionColor={COLORS.violet}
+        style={styles.fieldInput}
+        value={value}
+        onChangeText={onChangeText}
       />
-      <Text
-        style={[
-          styles.verdictText,
-          tone === 'safe'
-            ? styles.verdictTextSafe
-            : tone === 'caution'
-              ? styles.verdictTextWarn
-              : styles.verdictTextDanger,
-        ]}
-      >
-        <Text style={styles.verdictStrong}>{title}. </Text>
-        {copy}
-      </Text>
     </View>
   );
 }
@@ -774,11 +677,7 @@ function CategorySelectModal({
                   style={[styles.modalRow, selected ? styles.modalRowSelected : null]}
                 >
                   <View style={styles.modalRowLeft}>
-                    <FontAwesome
-                      color={category.color ?? COLORS.violetBright}
-                      name={mapCategoryIcon(category.icon)}
-                      size={14}
-                    />
+                    <FontAwesome color={category.color ?? COLORS.violetBright} name={mapCategoryIcon(category.icon)} size={14} />
                     <Text style={[styles.modalRowText, selected ? styles.modalRowTextSelected : null]}>
                       {category.effective_name ?? category.name}
                     </Text>
@@ -826,9 +725,7 @@ function GoalSelectModal({
                   <View style={styles.modalRowLeft}>
                     <FontAwesome color={COLORS.green} name="flag" size={14} />
                     <View>
-                      <Text style={[styles.modalRowText, selected ? styles.modalRowTextSelected : null]}>
-                        {goal.name}
-                      </Text>
+                      <Text style={[styles.modalRowText, selected ? styles.modalRowTextSelected : null]}>{goal.name}</Text>
                       <Text style={styles.modalSubText}>
                         {formatMoney(goal.current_amount, currencyCode)} / {formatMoney(goal.target_amount, currencyCode)}
                       </Text>
@@ -871,16 +768,56 @@ function MetricRow({
   );
 }
 
+function getComposerPlaceholder(mode: AssistantMode) {
+  switch (mode) {
+    case 'purchase':
+      return 'Ask about this purchase...';
+    case 'savings':
+      return 'Ask about your savings plan...';
+    default:
+      return 'Ask FinPilot anything...';
+  }
+}
+
+function getEmptyStateCopy(mode: AssistantMode) {
+  switch (mode) {
+    case 'purchase':
+      return 'Add an item, amount, and category, then ask whether this purchase really fits.';
+    case 'savings':
+      return 'Ask how to prioritize goals, how much to save, or whether your pace is realistic.';
+    default:
+      return 'Ask simple money questions in plain language. FinPilot will answer using your real spending, savings, and balance context.';
+  }
+}
+
 function formatMoney(value: string | number, currencyCode: string) {
   const numeric = typeof value === 'number' ? value : Number(value);
+  const symbol = getCurrencySymbol(currencyCode);
   if (!Number.isFinite(numeric)) {
-    return `${currencyCode} 0`;
+    return currencyCode === 'USD' ? `${symbol}0` : `${symbol} 0`;
   }
 
-  return `${currencyCode} ${numeric.toLocaleString('en-US', {
+  const amount = numeric.toLocaleString('en-US', {
     maximumFractionDigits: 0,
     minimumFractionDigits: 0,
-  })}`;
+  });
+
+  return currencyCode === 'USD' ? `${symbol}${amount}` : `${symbol} ${amount}`;
+}
+
+function getCurrencySymbol(currencyCode: string) {
+  switch (currencyCode.toUpperCase()) {
+    case 'PKR':
+      return 'Rs';
+    case 'USD':
+      return '$';
+    case 'EUR':
+      return 'EUR';
+    case 'QAR':
+      return 'QAR';
+    default:
+      return currencyCode.toUpperCase();
+  }
 }
 
 function sanitizeAmount(value: string) {
@@ -910,22 +847,14 @@ function mapCategoryIcon(icon: string | null | undefined): React.ComponentProps<
       return 'laptop';
     case 'line-chart':
       return 'line-chart';
-    case 'ellipsis-h':
-      return 'ellipsis-h';
     case 'shopping-basket':
       return 'shopping-basket';
     case 'car':
       return 'car';
-    case 'file-text-o':
-      return 'file-text-o';
     case 'shopping-bag':
       return 'shopping-bag';
     case 'heartbeat':
       return 'heartbeat';
-    case 'film':
-      return 'film';
-    case 'utensils':
-      return 'cutlery';
     case 'tv':
       return 'television';
     case 'wrench':
@@ -949,57 +878,6 @@ function formatVerdict(verdict: PurchaseCheckResponse['verdict']) {
   }
 }
 
-function getVerdictIcon(verdict: PurchaseCheckResponse['verdict'] | 'safe' | 'caution' | 'not_recommended') {
-  switch (verdict) {
-    case 'safe':
-      return 'check-circle';
-    case 'caution':
-      return 'warning';
-    case 'not_recommended':
-    default:
-      return 'times-circle';
-  }
-}
-
-function formatPaceStatus(status: SavingsAdviceResponse['context']['focus_goal_pace_status']) {
-  switch (status) {
-    case 'on_track':
-      return 'On track';
-    case 'behind':
-      return 'Behind';
-    case 'at_risk':
-      return 'At risk';
-    default:
-      return 'N/A';
-  }
-}
-
-function mapPaceTone(status: SavingsAdviceResponse['context']['focus_goal_pace_status']) {
-  switch (status) {
-    case 'on_track':
-      return 'positive' as const;
-    case 'behind':
-      return 'warning' as const;
-    case 'at_risk':
-      return 'danger' as const;
-    default:
-      return undefined;
-  }
-}
-
-function formatShortDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleDateString('en-US', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -1009,7 +887,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingTop: 18,
+    paddingTop: 28,
     paddingHorizontal: 18,
     paddingBottom: 12,
     borderBottomWidth: 0.5,
@@ -1047,15 +925,11 @@ const styles = StyleSheet.create({
     color: COLORS.green,
     fontSize: 10,
   },
-  headerAction: {
-    width: 24,
-    alignItems: 'flex-end',
-  },
   modeRow: {
     flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 14,
-    paddingTop: 12,
+    paddingTop: 16,
   },
   modePill: {
     flex: 1,
@@ -1083,7 +957,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 14,
-    paddingTop: 14,
+    paddingTop: 18,
     paddingBottom: 12,
   },
   emptyState: {
@@ -1229,92 +1103,6 @@ const styles = StyleSheet.create({
   metricValueDanger: {
     color: COLORS.danger,
   },
-  snapshotDivider: {
-    height: 0.5,
-    backgroundColor: '#3D2F6A',
-    marginVertical: 7,
-  },
-  verdictCard: {
-    marginTop: 8,
-    borderRadius: 8,
-    borderWidth: 0.5,
-    paddingHorizontal: 9,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    gap: 6,
-    alignItems: 'flex-start',
-  },
-  verdictSafe: {
-    backgroundColor: '#0D1A12',
-    borderColor: '#1A3D22',
-  },
-  verdictWarn: {
-    backgroundColor: '#1F1A0E',
-    borderColor: '#3D2F0D',
-  },
-  verdictDanger: {
-    backgroundColor: '#1A0F0F',
-    borderColor: '#3D1A1A',
-  },
-  verdictText: {
-    flex: 1,
-    fontSize: 10,
-    lineHeight: 15,
-  },
-  verdictTextSafe: {
-    color: '#4A8C5C',
-  },
-  verdictTextWarn: {
-    color: '#7A5C1E',
-  },
-  verdictTextDanger: {
-    color: '#A85A5A',
-  },
-  verdictStrong: {
-    color: '#F0F0F0',
-    fontWeight: '500',
-  },
-  allocationWrap: {
-    gap: 6,
-    marginTop: 8,
-  },
-  allocationChip: {
-    borderRadius: 8,
-    borderWidth: 0.5,
-    borderColor: '#3D2F6A',
-    backgroundColor: 'rgba(124,58,237,0.08)',
-    paddingHorizontal: 9,
-    paddingVertical: 8,
-  },
-  allocationTitle: {
-    color: '#D7D4F5',
-    fontSize: 10,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  allocationValue: {
-    color: '#BDB6EB',
-    fontSize: 10,
-  },
-  typingBubble: {
-    backgroundColor: '#1A1525',
-    borderWidth: 0.5,
-    borderColor: '#3D2F6A',
-    borderRadius: 14,
-    borderBottomLeftRadius: 4,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    gap: 5,
-    alignItems: 'center',
-  },
-  typingDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.violet,
-    opacity: 0.55,
-  },
   detailsCard: {
     backgroundColor: '#161616',
     borderWidth: 0.5,
@@ -1387,14 +1175,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     flex: 1,
   },
-  infoCard: {
-    borderRadius: 10,
-    borderWidth: 0.5,
-    borderColor: '#272727',
-    backgroundColor: '#101014',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
   quickPromptsSection: {
     marginBottom: 10,
   },
@@ -1444,16 +1224,6 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: '#0E0E0E',
   },
-  micButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#1E1E1E',
-    borderWidth: 0.5,
-    borderColor: '#2E2E2E',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   composerInput: {
     flex: 1,
     minHeight: 42,
@@ -1478,6 +1248,25 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     opacity: 0.45,
+  },
+  typingBubble: {
+    backgroundColor: '#1A1525',
+    borderWidth: 0.5,
+    borderColor: '#3D2F6A',
+    borderRadius: 14,
+    borderBottomLeftRadius: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    gap: 5,
+    alignItems: 'center',
+  },
+  typingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.violet,
+    opacity: 0.55,
   },
   modalBackdrop: {
     flex: 1,

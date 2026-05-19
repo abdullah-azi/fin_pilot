@@ -88,7 +88,25 @@ class UserResponse(TimestampedResponse):
     email: EmailStr
     full_name: str | None
     phone: str | None
+    profile_image_url: str | None
     currency: str
     country: str | None
     is_active: bool
     preferences: UserPreferenceResponse | None
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str = Field(min_length=8)
+    new_password: str = Field(min_length=8)
+
+
+class PasswordChangeResponse(BaseModel):
+    status: str
+
+
+class ProfileImageUploadResponse(BaseModel):
+    profile_image_url: str
+
+
+class ProfileImageDeleteResponse(BaseModel):
+    status: str

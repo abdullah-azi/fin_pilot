@@ -8,6 +8,7 @@ from app.api.deps import get_current_user, get_db
 from app.models.enums import TransactionType
 from app.models.user import User
 from app.schemas.transaction import (
+    TransactionBulkDeleteResponse,
     TransactionCategorySnapshot,
     TransactionCreate,
     TransactionHistoryItemResponse,
@@ -19,6 +20,7 @@ from app.schemas.transaction import (
 )
 from app.services.transactions import (
     create_transaction,
+    delete_all_transactions,
     delete_transaction,
     get_owned_transaction_or_404,
     list_transactions,
@@ -87,6 +89,15 @@ async def transactions_create(
     current_user: User = Depends(get_current_user),
 ) -> TransactionResponse:
     return create_transaction(db, current_user.id, payload)
+
+
+@router.delete("/all", response_model=TransactionBulkDeleteResponse)
+async def transactions_delete_all(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TransactionBulkDeleteResponse:
+    deleted_count = delete_all_transactions(db, current_user.id)
+    return TransactionBulkDeleteResponse(deleted_count=deleted_count)
 
 
 @router.get("/{transaction_id}", response_model=TransactionResponse)

@@ -1,3 +1,5 @@
+import secrets
+from pathlib import Path
 from typing import cast
 from uuid import UUID
 
@@ -5,10 +7,18 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.core.security import hash_password
+from app.core.security import hash_password, verify_password
 from app.models.user import User
 from app.models.user_preference import UserPreference
-from app.schemas.user import UserCreate, UserPreferenceUpdate, UserUpdate
+from app.schemas.user import PasswordChangeRequest, UserCreate, UserPreferenceUpdate, UserUpdate
+
+UPLOAD_ROOT = Path(__file__).resolve().parents[2] / "uploads" / "profile-images"
+ALLOWED_PROFILE_IMAGE_TYPES = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+}
+MAX_PROFILE_IMAGE_BYTES = 5 * 1024 * 1024
 
 
 def normalize_email(value: str) -> str:
@@ -118,8 +128,75 @@ def update_user(db: Session, user_id: UUID, payload: UserUpdate) -> User:
 
 def delete_user(db: Session, user_id: UUID) -> None:
     user = get_user_or_404(db, user_id)
+    _delete_profile_image_file(user.profile_image_url)
     db.delete(user)
     db.commit()
+
+
+def change_password(db: Session, user_id: UUID, payload: PasswordChangeRequest) -> None:
+    user = get_user_or_404(db, user_id)
+
+    if not verify_password(payload.current_password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect.",
+        )
+
+    if payload.current_password == payload.new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from the current password.",
+        )
+
+    user.hashed_password = hash_password(payload.new_password)
+    db.commit()
+
+
+def save_profile_image(
+    db: Session,
+    user_id: UUID,
+    *,
+    content_type: str | None,
+    file_bytes: bytes,
+) -> User:
+    user = get_user_or_404(db, user_id)
+
+    if not content_type or content_type not in ALLOWED_PROFILE_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Profile image must be a JPG, PNG, or WEBP file.",
+        )
+
+    if not file_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Uploaded profile image is empty.",
+        )
+
+    if len(file_bytes) > MAX_PROFILE_IMAGE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Profile image must be 5 MB or smaller.",
+        )
+
+    UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
+    extension = ALLOWED_PROFILE_IMAGE_TYPES[content_type]
+    file_name = f"{user.id}-{secrets.token_hex(8)}{extension}"
+    file_path = UPLOAD_ROOT / file_name
+    file_path.write_bytes(file_bytes)
+
+    _delete_profile_image_file(user.profile_image_url)
+    user.profile_image_url = f"/uploads/profile-images/{file_name}"
+    db.commit()
+    return get_user_or_404(db, user_id)
+
+
+def delete_profile_image(db: Session, user_id: UUID) -> User:
+    user = get_user_or_404(db, user_id)
+    _delete_profile_image_file(user.profile_image_url)
+    user.profile_image_url = None
+    db.commit()
+    return get_user_or_404(db, user_id)
 
 
 def _upsert_preferences(user: User, payload: UserPreferenceUpdate) -> None:
@@ -134,3 +211,13 @@ def _upsert_preferences(user: User, payload: UserPreferenceUpdate) -> None:
 
     for field_name, value in updates.items():
         setattr(preferences, field_name, value)
+
+
+def _delete_profile_image_file(profile_image_url: str | None) -> None:
+    if not profile_image_url:
+        return
+
+    file_name = Path(profile_image_url).name
+    file_path = UPLOAD_ROOT / file_name
+    if file_path.exists():
+        file_path.unlink()

@@ -16,3 +16,5 @@ export const API_BASE_URL = normalizeBaseUrl(
     ? configuredApiUrl
     : `${DEFAULT_API_ORIGIN}/api/v1`,
 );
+
+export const API_ORIGIN = API_BASE_URL.replace(/\/api\/v1$/, '');

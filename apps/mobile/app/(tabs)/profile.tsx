@@ -1,14 +1,19 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import * as ImagePicker from 'expo-image-picker';
 import { useIsFocused } from '@react-navigation/native';
+import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
+  Modal,
   Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 
@@ -17,16 +22,39 @@ import { authPalette, typography } from '@/constants/theme';
 import { ApiError } from '@/lib/api/client';
 import { listSavingsGoals } from '@/lib/api/savings-goals';
 import { getTransactionHistory, type Transaction } from '@/lib/api/transactions';
-import { getCurrentUserProfile, updateCurrentUser } from '@/lib/api/users';
+import {
+  changeCurrentUserPassword,
+  deleteCurrentUserProfileImage,
+  getCurrentUserProfile,
+  resolveProfileImageUrl,
+  updateCurrentUser,
+  uploadCurrentUserProfileImage,
+} from '@/lib/api/users';
 import { useAuth } from '@/providers/AuthProvider';
 
 const COLORS = authPalette;
+const COUNTRY_TO_CURRENCY: Record<string, string> = {
+  Europe: 'EUR',
+  Pakistan: 'PKR',
+  Qatar: 'QAR',
+  USA: 'USD',
+};
+const COUNTRY_OPTIONS = Object.keys(COUNTRY_TO_CURRENCY);
+const CURRENCY_OPTIONS = Object.values(COUNTRY_TO_CURRENCY);
 
 type ProfileStats = {
   activeGoals: number;
   streakDays: number;
   transactionsCount: number;
 };
+
+type PreferenceToggleKey =
+  | 'ai_suggestions_enabled'
+  | 'biometric_enabled'
+  | 'notifications_enabled'
+  | 'promotions_enabled'
+  | 'savings_reminders_enabled'
+  | 'weekly_digest_enabled';
 
 export default function ProfileScreen() {
   const { getValidAccessToken, isSubmitting, logout, user } = useAuth();
@@ -38,7 +66,31 @@ export default function ProfileScreen() {
     transactionsCount: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [isUpdatingNotifications, setIsUpdatingNotifications] = useState(false);
+  const [updatingPreferenceKey, setUpdatingPreferenceKey] = useState<PreferenceToggleKey | null>(null);
+  const [isEditingPersonalInfo, setIsEditingPersonalInfo] = useState(false);
+  const [isEditingCurrencyRegion, setIsEditingCurrencyRegion] = useState(false);
+  const [isEditingMonthStartDay, setIsEditingMonthStartDay] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isSavingPersonalInfo, setIsSavingPersonalInfo] = useState(false);
+  const [isSavingCurrencyRegion, setIsSavingCurrencyRegion] = useState(false);
+  const [isSavingMonthStartDay, setIsSavingMonthStartDay] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [isUploadingProfileImage, setIsUploadingProfileImage] = useState(false);
+  const [personalInfoDraft, setPersonalInfoDraft] = useState({
+    email: '',
+    full_name: '',
+    phone: '',
+  });
+  const [currencyRegionDraft, setCurrencyRegionDraft] = useState({
+    country: 'Pakistan',
+    currency: 'PKR',
+  });
+  const [monthStartDraft, setMonthStartDraft] = useState(1);
+  const [passwordDraft, setPasswordDraft] = useState({
+    confirm_password: '',
+    current_password: '',
+    new_password: '',
+  });
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -52,7 +104,34 @@ export default function ProfileScreen() {
   }, [isFocused]);
 
   const initials = useMemo(() => getInitials(profileUser?.full_name, profileUser?.email), [profileUser]);
-  const notificationsEnabled = profileUser?.preferences?.notifications_enabled ?? true;
+  const preferences = profileUser?.preferences;
+  const notificationsEnabled = preferences?.notifications_enabled ?? true;
+  const aiSuggestionsEnabled = preferences?.ai_suggestions_enabled ?? true;
+  const weeklyDigestEnabled = preferences?.weekly_digest_enabled ?? true;
+  const savingsRemindersEnabled = preferences?.savings_reminders_enabled ?? true;
+  const promotionsEnabled = preferences?.promotions_enabled ?? false;
+  const biometricEnabled = preferences?.biometric_enabled ?? false;
+  const monthStartDay = preferences?.month_start_day ?? 1;
+  const appearance = preferences?.appearance ?? 'dark';
+  const language = preferences?.language ?? 'English';
+  const profileImageUri = resolveProfileImageUrl(profileUser?.profile_image_url);
+
+  useEffect(() => {
+    if (!profileUser) {
+      return;
+    }
+
+    setPersonalInfoDraft({
+      email: profileUser.email,
+      full_name: profileUser.full_name ?? '',
+      phone: profileUser.phone ?? '',
+    });
+    setCurrencyRegionDraft({
+      country: profileUser.country ?? inferCountryFromCurrency(profileUser.currency),
+      currency: profileUser.currency ?? 'PKR',
+    });
+    setMonthStartDraft(profileUser.preferences?.month_start_day ?? 1);
+  }, [profileUser]);
 
   async function loadProfileData() {
     setIsLoading(true);
@@ -87,18 +166,17 @@ export default function ProfileScreen() {
     }
   }
 
-  async function handleNotificationsToggle() {
-    const nextValue = !notificationsEnabled;
+  async function handlePreferenceToggle(field: PreferenceToggleKey, nextValue: boolean) {
     const previousUser = profileUser;
 
-    setIsUpdatingNotifications(true);
+    setUpdatingPreferenceKey(field);
     setError(null);
     setProfileUser((current) =>
       current
         ? {
             ...current,
             preferences: current.preferences
-              ? { ...current.preferences, notifications_enabled: nextValue }
+              ? { ...current.preferences, [field]: nextValue }
               : null,
           }
         : current,
@@ -111,16 +189,250 @@ export default function ProfileScreen() {
       }
 
       const updated = await updateCurrentUser(accessToken, {
-        preferences: {
-          notifications_enabled: nextValue,
-        },
+        preferences: buildPreferencePatch(field, nextValue),
       });
       setProfileUser(updated);
     } catch (caughtError) {
       setProfileUser(previousUser);
-      setError(caughtError instanceof Error ? caughtError.message : 'Could not update notifications.');
+      setError(caughtError instanceof Error ? caughtError.message : 'Could not update this preference.');
     } finally {
-      setIsUpdatingNotifications(false);
+      setUpdatingPreferenceKey(null);
+    }
+  }
+
+  async function handleSavePersonalInfo() {
+    setIsSavingPersonalInfo(true);
+    setError(null);
+
+    try {
+      const accessToken = await getValidAccessToken();
+      if (!accessToken) {
+        throw new Error('Your session expired. Please log in again.');
+      }
+
+      const updated = await updateCurrentUser(accessToken, {
+        email: personalInfoDraft.email.trim(),
+        full_name: personalInfoDraft.full_name.trim() || null,
+        phone: personalInfoDraft.phone.trim() || null,
+      });
+      setProfileUser(updated);
+      setIsEditingPersonalInfo(false);
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : 'Could not update personal info.');
+    } finally {
+      setIsSavingPersonalInfo(false);
+    }
+  }
+
+  async function handleSaveCurrencyRegion() {
+    setIsSavingCurrencyRegion(true);
+    setError(null);
+
+    try {
+      const accessToken = await getValidAccessToken();
+      if (!accessToken) {
+        throw new Error('Your session expired. Please log in again.');
+      }
+
+      const updated = await updateCurrentUser(accessToken, {
+        country: currencyRegionDraft.country,
+        currency: currencyRegionDraft.currency,
+        preferences: {
+          default_currency: currencyRegionDraft.currency,
+        },
+      });
+      setProfileUser(updated);
+      setIsEditingCurrencyRegion(false);
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : 'Could not update currency and region.');
+    } finally {
+      setIsSavingCurrencyRegion(false);
+    }
+  }
+
+  async function handleSaveMonthStartDay() {
+    setIsSavingMonthStartDay(true);
+    setError(null);
+
+    try {
+      const accessToken = await getValidAccessToken();
+      if (!accessToken) {
+        throw new Error('Your session expired. Please log in again.');
+      }
+
+      const updated = await updateCurrentUser(accessToken, {
+        preferences: {
+          month_start_day: monthStartDraft,
+        },
+      });
+      setProfileUser(updated);
+      setIsEditingMonthStartDay(false);
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : 'Could not update month start day.');
+    } finally {
+      setIsSavingMonthStartDay(false);
+    }
+  }
+
+  async function handleSavePassword() {
+    setIsSavingPassword(true);
+    setError(null);
+
+    try {
+      if (passwordDraft.new_password !== passwordDraft.confirm_password) {
+        throw new Error('New password and confirmation do not match.');
+      }
+
+      const accessToken = await getValidAccessToken();
+      if (!accessToken) {
+        throw new Error('Your session expired. Please log in again.');
+      }
+
+      await changeCurrentUserPassword(accessToken, {
+        current_password: passwordDraft.current_password,
+        new_password: passwordDraft.new_password,
+      });
+      setPasswordDraft({
+        confirm_password: '',
+        current_password: '',
+        new_password: '',
+      });
+      setIsChangingPassword(false);
+      Alert.alert('Password changed', 'Your password has been updated.');
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : 'Could not change password.');
+    } finally {
+      setIsSavingPassword(false);
+    }
+  }
+
+  function openPersonalInfoEditor() {
+    if (!profileUser) {
+      return;
+    }
+
+    setPersonalInfoDraft({
+      email: profileUser.email,
+      full_name: profileUser.full_name ?? '',
+      phone: profileUser.phone ?? '',
+    });
+    setIsEditingPersonalInfo(true);
+  }
+
+  function openCurrencyRegionEditor() {
+    setCurrencyRegionDraft({
+      country: profileUser?.country ?? inferCountryFromCurrency(profileUser?.currency ?? 'PKR'),
+      currency: profileUser?.currency ?? 'PKR',
+    });
+    setIsEditingCurrencyRegion(true);
+  }
+
+  function handleCountryPick(country: string) {
+    setCurrencyRegionDraft({
+      country,
+      currency: COUNTRY_TO_CURRENCY[country] ?? currencyRegionDraft.currency,
+    });
+  }
+
+  function handleCurrencyPick(currency: string) {
+    setCurrencyRegionDraft({
+      country: inferCountryFromCurrency(currency),
+      currency,
+    });
+  }
+
+  async function handleProfileImagePress() {
+    if (profileImageUri) {
+      Alert.alert('Profile image', 'Choose what you want to do.', [
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => void handleDeleteProfileImage(),
+        },
+        {
+          text: 'Replace',
+          onPress: () => void handlePickProfileImage(),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+      return;
+    }
+
+    await handlePickProfileImage();
+  }
+
+  async function handlePickProfileImage() {
+    setError(null);
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        throw new Error('Photo library permission is required to upload a profile image.');
+      }
+
+      const picked = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        mediaTypes: ['images'],
+        quality: 0.85,
+      });
+
+      if (picked.canceled) {
+        return;
+      }
+
+      const asset = picked.assets[0];
+      if (!asset?.uri) {
+        throw new Error('Could not read the selected image.');
+      }
+
+      const accessToken = await getValidAccessToken();
+      if (!accessToken) {
+        throw new Error('Your session expired. Please log in again.');
+      }
+
+      setIsUploadingProfileImage(true);
+      const uploaded = await uploadCurrentUserProfileImage(accessToken, {
+        mimeType: asset.mimeType,
+        name: asset.fileName ?? `profile-${Date.now()}.jpg`,
+        uri: asset.uri,
+      });
+      setProfileUser((current) =>
+        current
+          ? {
+              ...current,
+              profile_image_url: uploaded.profile_image_url,
+            }
+          : current,
+      );
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : 'Could not upload profile image.');
+    } finally {
+      setIsUploadingProfileImage(false);
+    }
+  }
+
+  async function handleDeleteProfileImage() {
+    setError(null);
+    try {
+      const accessToken = await getValidAccessToken();
+      if (!accessToken) {
+        throw new Error('Your session expired. Please log in again.');
+      }
+
+      setIsUploadingProfileImage(true);
+      await deleteCurrentUserProfileImage(accessToken);
+      setProfileUser((current) =>
+        current
+          ? {
+              ...current,
+              profile_image_url: null,
+            }
+          : current,
+      );
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : 'Could not remove profile image.');
+    } finally {
+      setIsUploadingProfileImage(false);
     }
   }
 
@@ -132,12 +444,22 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
-          <View style={styles.avatarRing}>
-            <Text style={styles.avatarInitials}>{initials}</Text>
-            <View style={styles.avatarEdit}>
-              <FontAwesome color="#FFFFFF" name="pencil" size={10} />
+          <Pressable onPress={() => void handleProfileImagePress()} style={styles.avatarPressable}>
+            <View style={styles.avatarRing}>
+              {profileImageUri ? (
+                <Image source={{ uri: profileImageUri }} style={styles.avatarImage} />
+              ) : (
+                <Text style={styles.avatarInitials}>{initials}</Text>
+              )}
+              <View style={styles.avatarEdit}>
+                {isUploadingProfileImage ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <FontAwesome color="#FFFFFF" name="camera" size={10} />
+                )}
+              </View>
             </View>
-          </View>
+          </Pressable>
 
           <View style={styles.heroTextWrap}>
             <Text style={styles.profileName}>{profileUser?.full_name ?? 'FinPilot User'}</Text>
@@ -170,15 +492,15 @@ export default function ProfileScreen() {
               background="#1A1525"
               icon="user"
               iconColor={COLORS.violet}
-              onPress={() => showComingSoon('Personal info')}
-              subtitle="Name, email, phone"
+              onPress={openPersonalInfoEditor}
+              subtitle={profileUser?.phone ? `${profileUser.email} · ${profileUser.phone}` : profileUser?.email ?? 'Name, email, phone'}
               title="Personal info"
             />
             <SettingRow
               background="#1F1A0E"
               icon="money"
               iconColor={COLORS.amber}
-              onPress={() => showComingSoon('Currency & region')}
+              onPress={openCurrencyRegionEditor}
               rightValue={profileUser?.currency ?? 'USD'}
               subtitle={`${profileUser?.currency ?? 'USD'} · ${profileUser?.country ?? 'Not set'}`}
               title="Currency & region"
@@ -187,8 +509,8 @@ export default function ProfileScreen() {
               background="#0D1A12"
               icon="calendar"
               iconColor={COLORS.green}
-              onPress={() => showComingSoon('Month start date')}
-              rightValue="1st"
+              onPress={() => setIsEditingMonthStartDay(true)}
+              rightValue={formatMonthStartDay(monthStartDay)}
               subtitle="When your budget cycle resets"
               title="Month start date"
             />
@@ -200,7 +522,7 @@ export default function ProfileScreen() {
               background="#131520"
               icon="th-large"
               iconColor="#6366F1"
-              onPress={() => showComingSoon('Manage categories')}
+              onPress={() => router.push('/category-settings' as never)}
               subtitle="Add, rename or hide categories"
               title="Manage categories"
             />
@@ -208,7 +530,7 @@ export default function ProfileScreen() {
               background="#1F1A0E"
               icon="bullseye"
               iconColor={COLORS.amber}
-              onPress={() => showComingSoon('Budget limits')}
+              onPress={() => router.push('/category-settings' as never)}
               subtitle="Set max spend per category"
               title="Budget limits"
             />
@@ -220,11 +542,14 @@ export default function ProfileScreen() {
               background="#1A1525"
               icon="android"
               iconColor={COLORS.violet}
-              onPress={() => showComingSoon('AI suggestions')}
               subtitle="Proactive spending tips"
               title="AI suggestions"
               trailing={
-                <ValuePill label="Soon" tone="violet" />
+                <SettingToggle
+                  disabled={updatingPreferenceKey === 'ai_suggestions_enabled'}
+                  on={aiSuggestionsEnabled}
+                  onPress={() => void handlePreferenceToggle('ai_suggestions_enabled', !aiSuggestionsEnabled)}
+                />
               }
             />
             <SettingRow
@@ -232,7 +557,7 @@ export default function ProfileScreen() {
               icon="moon-o"
               iconColor="#888888"
               onPress={() => showComingSoon('Appearance')}
-              rightValue="Dark"
+              rightValue={capitalizeLabel(appearance)}
               subtitle="Theme preference"
               title="Appearance"
             />
@@ -241,7 +566,7 @@ export default function ProfileScreen() {
               icon="language"
               iconColor="#6366F1"
               onPress={() => showComingSoon('Language')}
-              rightValue="English"
+              rightValue={language}
               subtitle="App display language"
               title="Language"
             />
@@ -257,9 +582,9 @@ export default function ProfileScreen() {
               title="Spending alerts"
               trailing={
                 <SettingToggle
-                  disabled={isUpdatingNotifications}
+                  disabled={updatingPreferenceKey === 'notifications_enabled'}
                   on={notificationsEnabled}
-                  onPress={() => void handleNotificationsToggle()}
+                  onPress={() => void handlePreferenceToggle('notifications_enabled', !notificationsEnabled)}
                 />
               }
             />
@@ -267,28 +592,43 @@ export default function ProfileScreen() {
               background="#1A1525"
               icon="android"
               iconColor={COLORS.violet}
-              onPress={() => showComingSoon('AI weekly digest')}
               subtitle="Summary every Sunday"
               title="AI weekly digest"
-              trailing={<ValuePill label="Soon" tone="violet" />}
+              trailing={
+                <SettingToggle
+                  disabled={updatingPreferenceKey === 'weekly_digest_enabled'}
+                  on={weeklyDigestEnabled}
+                  onPress={() => void handlePreferenceToggle('weekly_digest_enabled', !weeklyDigestEnabled)}
+                />
+              }
             />
             <SettingRow
               background="#0D1A12"
               icon="bank"
               iconColor={COLORS.green}
-              onPress={() => showComingSoon('Savings reminders')}
               subtitle="Monthly contribution nudge"
               title="Savings reminders"
-              trailing={<ValuePill label="Soon" tone="green" />}
+              trailing={
+                <SettingToggle
+                  disabled={updatingPreferenceKey === 'savings_reminders_enabled'}
+                  on={savingsRemindersEnabled}
+                  onPress={() => void handlePreferenceToggle('savings_reminders_enabled', !savingsRemindersEnabled)}
+                />
+              }
             />
             <SettingRow
               background="#161616"
               icon="tag"
               iconColor="#777777"
-              onPress={() => showComingSoon('Promotions')}
               subtitle="App news and offers"
               title="Promotions"
-              trailing={<ValuePill label="Off" tone="muted" />}
+              trailing={
+                <SettingToggle
+                  disabled={updatingPreferenceKey === 'promotions_enabled'}
+                  on={promotionsEnabled}
+                  onPress={() => void handlePreferenceToggle('promotions_enabled', !promotionsEnabled)}
+                />
+              }
             />
           </View>
 
@@ -298,16 +638,21 @@ export default function ProfileScreen() {
               background="#131520"
               icon="unlock-alt"
               iconColor="#6366F1"
-              onPress={() => showComingSoon('Biometric unlock')}
               subtitle="Face ID / fingerprint"
               title="Biometric unlock"
-              trailing={<ValuePill label="Soon" tone="violet" />}
+              trailing={
+                <SettingToggle
+                  disabled={updatingPreferenceKey === 'biometric_enabled'}
+                  on={biometricEnabled}
+                  onPress={() => void handlePreferenceToggle('biometric_enabled', !biometricEnabled)}
+                />
+              }
             />
             <SettingRow
               background="#1A1525"
               icon="lock"
               iconColor={COLORS.violet}
-              onPress={() => showComingSoon('Change password')}
+              onPress={() => setIsChangingPassword(true)}
               subtitle="Password update flow"
               title="Change password"
             />
@@ -331,6 +676,22 @@ export default function ProfileScreen() {
               onPress={() => showComingSoon('Export all data')}
               subtitle="Download as CSV or PDF"
               title="Export all data"
+            />
+            <SettingRow
+              background="#1A1525"
+              icon="upload"
+              iconColor={COLORS.violet}
+              onPress={() => router.push('/import-csv' as never)}
+              subtitle="Upload a bank or wallet statement"
+              title="Import statement CSV"
+            />
+            <SettingRow
+              background="#131520"
+              icon="history"
+              iconColor="#6366F1"
+              onPress={() => router.push('/import-history' as never)}
+              subtitle="Review previous statement imports"
+              title="Import history"
             />
             <SettingRow
               background="#161616"
@@ -364,6 +725,227 @@ export default function ProfileScreen() {
           <Text style={styles.versionText}>FinPilot v1.0.0 · Built in Pakistan</Text>
         </View>
       </ScrollView>
+
+      <Modal animationType="slide" onRequestClose={() => setIsEditingPersonalInfo(false)} transparent visible={isEditingPersonalInfo}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Personal info</Text>
+              <Pressable onPress={() => setIsEditingPersonalInfo(false)} style={styles.modalCloseButton}>
+                <FontAwesome color="#888888" name="close" size={15} />
+              </Pressable>
+            </View>
+            <ScrollView contentContainerStyle={styles.modalContent}>
+              <FieldLabel label="Full name" />
+              <TextInput
+                onChangeText={(value) => setPersonalInfoDraft((current) => ({ ...current, full_name: value }))}
+                placeholder="Your name"
+                placeholderTextColor="#5F6370"
+                style={styles.input}
+                value={personalInfoDraft.full_name}
+              />
+              <FieldLabel label="Email" />
+              <TextInput
+                autoCapitalize="none"
+                keyboardType="email-address"
+                onChangeText={(value) => setPersonalInfoDraft((current) => ({ ...current, email: value }))}
+                placeholder="you@example.com"
+                placeholderTextColor="#5F6370"
+                style={styles.input}
+                value={personalInfoDraft.email}
+              />
+              <FieldLabel label="Phone" />
+              <TextInput
+                keyboardType="phone-pad"
+                onChangeText={(value) => setPersonalInfoDraft((current) => ({ ...current, phone: value }))}
+                placeholder="+92..."
+                placeholderTextColor="#5F6370"
+                style={styles.input}
+                value={personalInfoDraft.phone}
+              />
+              <View style={styles.modalActionRow}>
+                <Pressable onPress={() => setIsEditingPersonalInfo(false)} style={styles.modalSecondaryButton}>
+                  <Text style={styles.modalSecondaryButtonText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  disabled={isSavingPersonalInfo}
+                  onPress={() => void handleSavePersonalInfo()}
+                  style={[styles.modalPrimaryButton, isSavingPersonalInfo ? styles.modalButtonBusy : null]}
+                >
+                  {isSavingPersonalInfo ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.modalPrimaryButtonText}>Save</Text>
+                  )}
+                </Pressable>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal animationType="slide" onRequestClose={() => setIsEditingCurrencyRegion(false)} transparent visible={isEditingCurrencyRegion}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Currency & region</Text>
+              <Pressable onPress={() => setIsEditingCurrencyRegion(false)} style={styles.modalCloseButton}>
+                <FontAwesome color="#888888" name="close" size={15} />
+              </Pressable>
+            </View>
+            <ScrollView contentContainerStyle={styles.modalContent}>
+              <FieldLabel label="Country" />
+              <View style={styles.optionGrid}>
+                {COUNTRY_OPTIONS.map((country) => (
+                  <SelectionPill
+                    active={currencyRegionDraft.country === country}
+                    key={country}
+                    label={country}
+                    onPress={() => handleCountryPick(country)}
+                  />
+                ))}
+              </View>
+              <FieldLabel label="Currency" />
+              <View style={styles.optionGrid}>
+                {CURRENCY_OPTIONS.map((currency) => (
+                  <SelectionPill
+                    active={currencyRegionDraft.currency === currency}
+                    key={currency}
+                    label={currency}
+                    onPress={() => handleCurrencyPick(currency)}
+                  />
+                ))}
+              </View>
+              <View style={styles.modalPreviewCard}>
+                <Text style={styles.modalPreviewLabel}>Selection</Text>
+                <Text style={styles.modalPreviewValue}>
+                  {currencyRegionDraft.country} · {currencyRegionDraft.currency}
+                </Text>
+              </View>
+              <View style={styles.modalActionRow}>
+                <Pressable onPress={() => setIsEditingCurrencyRegion(false)} style={styles.modalSecondaryButton}>
+                  <Text style={styles.modalSecondaryButtonText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  disabled={isSavingCurrencyRegion}
+                  onPress={() => void handleSaveCurrencyRegion()}
+                  style={[styles.modalPrimaryButton, isSavingCurrencyRegion ? styles.modalButtonBusy : null]}
+                >
+                  {isSavingCurrencyRegion ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.modalPrimaryButtonText}>Save</Text>
+                  )}
+                </Pressable>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal animationType="slide" onRequestClose={() => setIsEditingMonthStartDay(false)} transparent visible={isEditingMonthStartDay}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Month start date</Text>
+              <Pressable onPress={() => setIsEditingMonthStartDay(false)} style={styles.modalCloseButton}>
+                <FontAwesome color="#888888" name="close" size={15} />
+              </Pressable>
+            </View>
+            <ScrollView contentContainerStyle={styles.modalContent}>
+              <FieldLabel label="Choose the day your budget cycle resets" />
+              <View style={styles.optionGrid}>
+                {Array.from({ length: 31 }, (_, index) => index + 1).map((day) => (
+                  <SelectionPill
+                    active={monthStartDraft === day}
+                    key={day}
+                    label={String(day)}
+                    onPress={() => setMonthStartDraft(day)}
+                  />
+                ))}
+              </View>
+              <View style={styles.modalPreviewCard}>
+                <Text style={styles.modalPreviewLabel}>Current selection</Text>
+                <Text style={styles.modalPreviewValue}>{formatMonthStartDay(monthStartDraft)}</Text>
+              </View>
+              <View style={styles.modalActionRow}>
+                <Pressable onPress={() => setIsEditingMonthStartDay(false)} style={styles.modalSecondaryButton}>
+                  <Text style={styles.modalSecondaryButtonText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  disabled={isSavingMonthStartDay}
+                  onPress={() => void handleSaveMonthStartDay()}
+                  style={[styles.modalPrimaryButton, isSavingMonthStartDay ? styles.modalButtonBusy : null]}
+                >
+                  {isSavingMonthStartDay ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.modalPrimaryButtonText}>Save</Text>
+                  )}
+                </Pressable>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal animationType="slide" onRequestClose={() => setIsChangingPassword(false)} transparent visible={isChangingPassword}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Change password</Text>
+              <Pressable onPress={() => setIsChangingPassword(false)} style={styles.modalCloseButton}>
+                <FontAwesome color="#888888" name="close" size={15} />
+              </Pressable>
+            </View>
+            <ScrollView contentContainerStyle={styles.modalContent}>
+              <FieldLabel label="Current password" />
+              <TextInput
+                onChangeText={(value) => setPasswordDraft((current) => ({ ...current, current_password: value }))}
+                placeholder="Current password"
+                placeholderTextColor="#5F6370"
+                secureTextEntry
+                style={styles.input}
+                value={passwordDraft.current_password}
+              />
+              <FieldLabel label="New password" />
+              <TextInput
+                onChangeText={(value) => setPasswordDraft((current) => ({ ...current, new_password: value }))}
+                placeholder="New password"
+                placeholderTextColor="#5F6370"
+                secureTextEntry
+                style={styles.input}
+                value={passwordDraft.new_password}
+              />
+              <FieldLabel label="Confirm new password" />
+              <TextInput
+                onChangeText={(value) => setPasswordDraft((current) => ({ ...current, confirm_password: value }))}
+                placeholder="Confirm new password"
+                placeholderTextColor="#5F6370"
+                secureTextEntry
+                style={styles.input}
+                value={passwordDraft.confirm_password}
+              />
+              <View style={styles.modalActionRow}>
+                <Pressable onPress={() => setIsChangingPassword(false)} style={styles.modalSecondaryButton}>
+                  <Text style={styles.modalSecondaryButtonText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  disabled={isSavingPassword}
+                  onPress={() => void handleSavePassword()}
+                  style={[styles.modalPrimaryButton, isSavingPassword ? styles.modalButtonBusy : null]}
+                >
+                  {isSavingPassword ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.modalPrimaryButtonText}>Update</Text>
+                  )}
+                </Pressable>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -481,6 +1063,26 @@ function SettingToggle({
   );
 }
 
+function FieldLabel({ label }: { label: string }) {
+  return <Text style={styles.fieldLabel}>{label}</Text>;
+}
+
+function SelectionPill({
+  active,
+  label,
+  onPress,
+}: {
+  active: boolean;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress} style={[styles.selectionPill, active ? styles.selectionPillActive : null]}>
+      <Text style={[styles.selectionPillText, active ? styles.selectionPillTextActive : null]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 function getInitials(fullName?: string | null, email?: string | null) {
   if (fullName?.trim()) {
     const parts = fullName.trim().split(/\s+/).slice(0, 2);
@@ -488,6 +1090,55 @@ function getInitials(fullName?: string | null, email?: string | null) {
   }
 
   return (email?.[0] ?? 'F').toUpperCase();
+}
+
+function buildPreferencePatch(field: PreferenceToggleKey, nextValue: boolean) {
+  switch (field) {
+    case 'ai_suggestions_enabled':
+      return { ai_suggestions_enabled: nextValue };
+    case 'biometric_enabled':
+      return { biometric_enabled: nextValue };
+    case 'notifications_enabled':
+      return { notifications_enabled: nextValue };
+    case 'promotions_enabled':
+      return { promotions_enabled: nextValue };
+    case 'savings_reminders_enabled':
+      return { savings_reminders_enabled: nextValue };
+    case 'weekly_digest_enabled':
+      return { weekly_digest_enabled: nextValue };
+    default:
+      return {};
+  }
+}
+
+function formatMonthStartDay(value: number) {
+  if (value === 1) return '1st';
+  if (value === 2) return '2nd';
+  if (value === 3) return '3rd';
+  return `${value}th`;
+}
+
+function capitalizeLabel(value: string) {
+  if (!value) {
+    return value;
+  }
+
+  return value[0].toUpperCase() + value.slice(1);
+}
+
+function inferCountryFromCurrency(currency: string) {
+  switch (currency.toUpperCase()) {
+    case 'PKR':
+      return 'Pakistan';
+    case 'USD':
+      return 'USA';
+    case 'EUR':
+      return 'Europe';
+    case 'QAR':
+      return 'Qatar';
+    default:
+      return 'Pakistan';
+  }
 }
 
 function calculateTransactionStreakDays(transactions: Transaction[]) {
@@ -546,6 +1197,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+  avatarPressable: {
+    borderRadius: 40,
+  },
   avatarRing: {
     width: 64,
     height: 64,
@@ -556,6 +1210,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   avatarInitials: {
     color: '#9B72F5',
@@ -799,5 +1458,146 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 10,
     marginBottom: 20,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    maxHeight: '86%',
+    backgroundColor: '#111116',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 0.5,
+    borderColor: '#23232B',
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#1E1E1E',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  modalTitle: {
+    color: '#F0F0F0',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  modalCloseButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#191922',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalContent: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 24,
+  },
+  fieldLabel: {
+    color: '#A7A9B2',
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  input: {
+    minHeight: 44,
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: '#2C2C33',
+    backgroundColor: '#16161A',
+    color: '#F0F0F0',
+    paddingHorizontal: 13,
+    fontSize: 13,
+    marginBottom: 10,
+  },
+  optionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+  selectionPill: {
+    borderRadius: 999,
+    borderWidth: 0.5,
+    borderColor: '#2C2C33',
+    backgroundColor: '#16161A',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  selectionPillActive: {
+    backgroundColor: '#1A1525',
+    borderColor: '#3D2F6A',
+  },
+  selectionPillText: {
+    color: '#8C909B',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  selectionPillTextActive: {
+    color: '#9B72F5',
+  },
+  modalPreviewCard: {
+    backgroundColor: '#16161A',
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: '#2C2C33',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginTop: 6,
+    marginBottom: 10,
+  },
+  modalPreviewLabel: {
+    color: '#8C909B',
+    fontSize: 10,
+    marginBottom: 3,
+  },
+  modalPreviewValue: {
+    color: '#F0F0F0',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  modalActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  modalSecondaryButton: {
+    flex: 1,
+    minHeight: 46,
+    borderRadius: 13,
+    borderWidth: 0.5,
+    borderColor: '#2C2C33',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSecondaryButtonText: {
+    color: '#8C909B',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  modalPrimaryButton: {
+    flex: 1,
+    minHeight: 46,
+    borderRadius: 13,
+    backgroundColor: COLORS.violet,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalPrimaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  modalButtonBusy: {
+    opacity: 0.8,
   },
 });

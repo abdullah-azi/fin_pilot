@@ -4,7 +4,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import Select, and_, case, func, or_, select
+from sqlalchemy import Select, and_, case, delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.category import Category
@@ -213,6 +213,12 @@ def delete_transaction(db: Session, user_id: UUID, transaction_id: UUID) -> None
     transaction = get_owned_transaction_or_404(db, user_id, transaction_id)
     db.delete(transaction)
     db.commit()
+
+
+def delete_all_transactions(db: Session, user_id: UUID) -> int:
+    result = db.execute(delete(Transaction).where(Transaction.user_id == user_id))
+    db.commit()
+    return int(result.rowcount or 0)
 
 
 def _build_transaction_filters(
