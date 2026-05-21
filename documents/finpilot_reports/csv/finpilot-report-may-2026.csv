@@ -1,0 +1,37 @@
+FinPilot Report
+Period,May 2026
+Net Saved,892.75
+Total Income,123120.00
+Total Expense,122227.25
+Transaction Count,49
+Savings Rate,0.7
+Savings Rate Delta,0.1
+
+Monthly Overview
+Month,Income,Expense,Net,Current
+Feb,17611.00,17225.28,385.72,no
+Mar,40758.00,38883.40,1874.60,no
+Apr,25920.00,25774.33,145.67,no
+May,123120.00,122227.25,892.75,yes
+
+Category Table
+Category,Amount,Share %,Delta %,Trend
+Transfers Out,105540.00,86.3,1233.1,up
+Digital Services,3693.64,3.0,602.9,up
+Peer / Family Support,3590.00,2.9,43.6,up
+Uncategorized,1900.00,1.6,2.1,up
+Subscriptions,1726.14,1.4,,up
+Transport,1553.47,1.3,,up
+Mobile Top-Up,1499.00,1.2,,flat
+Fuel,1350.00,1.1,3.8,up
+Cash Withdrawal,1035.00,0.8,-89.2,down
+Groceries,230.00,0.2,,up
+Pharmacy / Medicine,110.00,0.1,,up
+
+Largest Transactions
+Date,Title,Category,Amount,Type,Note
+2026-05-03,"Outgoing fund transfer to Seedabdallhbnazeem
+easypaisa Bank-2928|Raast-5401
+Transaction ID 69f758c88229f35aadb9b908",Transfers Out,100000.00,expense,Balance: 2352.87
+2026-05-06,Paid to DNHGODADDY *#81162103 310858883143 NL|Visa xxxx3388,Digital Services,2987.15,expense,Balance: 2042.25
+2026-05-20,Yousuf,Peer / Family Support,2000.00,expense,

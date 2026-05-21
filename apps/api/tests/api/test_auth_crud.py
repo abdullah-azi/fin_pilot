@@ -110,6 +110,61 @@ def test_auth_email_is_case_insensitive(client: TestClient) -> None:
     assert login_response.json()["user"]["email"] == "caseuser@example.com"
 
 
+def test_forgot_and_reset_password_flow(client: TestClient) -> None:
+    signup_response = client.post(
+        "/api/v1/auth/signup",
+        json={
+            "email": "forgotuser@example.com",
+            "password": "supersecure123",
+            "full_name": "Forgot User",
+            "currency": "PKR",
+        },
+    )
+    assert signup_response.status_code == 201
+
+    forgot_response = client.post(
+        "/api/v1/auth/forgot-password",
+        json={"email": "forgotuser@example.com"},
+    )
+    assert forgot_response.status_code == 200
+    forgot_body = forgot_response.json()
+    assert forgot_body["status"] == "password_reset_requested"
+    assert isinstance(forgot_body["reset_token"], str)
+    assert forgot_body["expires_in_seconds"] == 1800
+
+    reset_response = client.post(
+        "/api/v1/auth/reset-password",
+        json={
+            "token": forgot_body["reset_token"],
+            "new_password": "resetsecure123",
+        },
+    )
+    assert reset_response.status_code == 200
+    assert reset_response.json() == {"status": "password_reset"}
+
+    old_login_response = client.post(
+        "/api/v1/auth/login",
+        json={"email": "forgotuser@example.com", "password": "supersecure123"},
+    )
+    assert old_login_response.status_code == 401
+
+    new_login_response = client.post(
+        "/api/v1/auth/login",
+        json={"email": "forgotuser@example.com", "password": "resetsecure123"},
+    )
+    assert new_login_response.status_code == 200
+
+    reused_token_response = client.post(
+        "/api/v1/auth/reset-password",
+        json={
+            "token": forgot_body["reset_token"],
+            "new_password": "anothersecure123",
+        },
+    )
+    assert reused_token_response.status_code == 400
+    assert reused_token_response.json()["detail"] == "Invalid or expired password reset token."
+
+
 def test_profile_image_upload_and_delete(client: TestClient) -> None:
     auth = _signup_and_get_auth(client, "avatar@example.com")
     headers = _auth_headers(auth["access_token"])
@@ -412,6 +467,70 @@ def test_transactions_delete_all_removes_user_history(client: TestClient) -> Non
     assert list_response.status_code == 200
     assert list_response.json()["items"] == []
     assert list_response.json()["summary"]["total_count"] == 0
+
+
+def test_transactions_backfill_uncategorized_recategorizes_matching_history(client: TestClient) -> None:
+    auth = _signup_and_get_auth(client, "backfill@example.com")
+    headers = _auth_headers(auth["access_token"])
+
+    categories = client.get("/api/v1/categories/", headers=headers).json()
+    groceries_category = next(category for category in categories if category["name"] == "Groceries")
+
+    categorized_response = client.post(
+        "/api/v1/transactions/",
+        json={
+            "type": "expense",
+            "amount": "120.00",
+            "category_id": groceries_category["id"],
+            "title": "Grocery run",
+            "transaction_date": "2026-05-16",
+        },
+        headers=headers,
+    )
+    assert categorized_response.status_code == 201
+
+    uncategorized_payloads = [
+        {
+            "type": "expense",
+            "amount": "19.99",
+            "title": "Netflix subscription",
+            "note": "Monthly plan",
+            "transaction_date": "2026-05-15",
+        },
+        {
+            "type": "expense",
+            "amount": "11.50",
+            "title": "Uber trip",
+            "transaction_date": "2026-05-14",
+        },
+        {
+            "type": "expense",
+            "amount": "7.25",
+            "title": "Unknown merchant",
+            "transaction_date": "2026-05-13",
+        },
+    ]
+
+    for payload in uncategorized_payloads:
+        response = client.post("/api/v1/transactions/", json=payload, headers=headers)
+        assert response.status_code == 201
+
+    backfill_response = client.post("/api/v1/transactions/backfill-uncategorized", headers=headers)
+    assert backfill_response.status_code == 200
+    assert backfill_response.json() == {"scanned_count": 3, "updated_count": 2, "status": "completed"}
+
+    history_response = client.get("/api/v1/transactions/", headers=headers)
+    assert history_response.status_code == 200
+    history_body = history_response.json()
+    category_by_title = {
+        item["title"]: item["category"]["name"] if item["category"] else None
+        for item in history_body["items"]
+    }
+
+    assert category_by_title["Grocery run"] == "Groceries"
+    assert category_by_title["Netflix subscription"] == "Subscriptions"
+    assert category_by_title["Uber trip"] == "Transport"
+    assert category_by_title["Unknown merchant"] is None
 
 
 def test_dashboard_summary_returns_current_month_overview(client: TestClient) -> None:

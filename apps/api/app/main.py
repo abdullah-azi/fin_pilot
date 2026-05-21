@@ -1,11 +1,21 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api.router import api_router
 from app.core.config import settings
+from app.db.bootstrap import create_schema
 from app.models import register_models
 from app.services.users import UPLOAD_ROOT
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    if settings.app_env != "production":
+        create_schema()
+    yield
 
 
 def create_application() -> FastAPI:
@@ -16,6 +26,7 @@ def create_application() -> FastAPI:
         version="0.1.0",
         docs_url="/docs",
         redoc_url="/redoc",
+        lifespan=lifespan,
     )
 
     app.add_middleware(

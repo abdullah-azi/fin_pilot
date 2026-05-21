@@ -1,5 +1,9 @@
+import base64
+import io
+
 import pytest
 from fastapi.testclient import TestClient
+from openpyxl import Workbook
 
 pytestmark = pytest.mark.usefixtures("reset_database")
 
@@ -110,6 +114,207 @@ def test_csv_import_preview_rejects_non_csv_upload(client: TestClient) -> None:
     )
     assert response.status_code == 400
     assert response.json()["detail"] == "Only .csv files are supported for statement import."
+
+
+def test_csv_import_preview_supports_statement_preamble_and_short_timestamps(client: TestClient) -> None:
+    auth = _signup_and_get_auth(client, "nayapayimport@example.com")
+    headers = _auth_headers(auth["access_token"])
+
+    csv_content = "\n".join(
+        [
+            "Customer Name,Test User,,,,",
+            "Customer Address,Rawalpindi,,,,",
+            ",,,,,",
+            "TIMESTAMP,TYPE,DESCRIPTION,AMOUNT,BALANCE",
+            '1/1/2026 2:34,Raast In,"Incoming fund transfer from Salary source",20000,20263.55',
+            '1/1/2026 16:04,Peer to Peer,"Money sent to brother",-1000,19263.55',
+        ]
+    )
+
+    preview_response = client.post(
+        "/api/v1/imports/csv/preview",
+        files={"file": ("nayapay-january.csv", csv_content, "text/csv")},
+        headers=headers,
+    )
+    assert preview_response.status_code == 200
+    preview_body = preview_response.json()
+
+    assert preview_body["detected_columns"] == ["TIMESTAMP", "TYPE", "DESCRIPTION", "AMOUNT", "BALANCE"]
+    assert preview_body["parsed_count"] == 2
+    assert preview_body["rows"][0]["transaction_date"] == "2026-01-01"
+    assert preview_body["rows"][0]["type"] == "income"
+    assert preview_body["rows"][1]["type"] == "expense"
+
+
+def test_csv_import_preview_text_flow(client: TestClient) -> None:
+    auth = _signup_and_get_auth(client, "inlineimport@example.com")
+    headers = _auth_headers(auth["access_token"])
+
+    csv_content = "\n".join(
+        [
+            "TIMESTAMP,TYPE,DESCRIPTION,AMOUNT,BALANCE",
+            '1/1/2026 2:34,Raast In,"Incoming fund transfer from Salary source",20000,20263.55',
+            '1/1/2026 16:04,Peer to Peer,"Money sent to brother",-1000,19263.55',
+        ]
+    )
+
+    preview_response = client.post(
+        "/api/v1/imports/csv/preview-text",
+        json={
+            "source_name": "nayapay-january.csv",
+            "content": csv_content,
+        },
+        headers=headers,
+    )
+    assert preview_response.status_code == 200
+    preview_body = preview_response.json()
+
+    assert preview_body["source_name"] == "nayapay-january.csv"
+    assert preview_body["parsed_count"] == 2
+    assert preview_body["skipped_count"] == 0
+    assert preview_body["rows"][0]["transaction_date"] == "2026-01-01"
+    assert preview_body["rows"][1]["type"] == "expense"
+
+
+def test_csv_import_preview_understands_nayapay_type_labels_without_signed_amounts(client: TestClient) -> None:
+    auth = _signup_and_get_auth(client, "nayapaytypes@example.com")
+    headers = _auth_headers(auth["access_token"])
+
+    csv_content = "\n".join(
+        [
+            "TIMESTAMP,TYPE,DESCRIPTION,AMOUNT,BALANCE",
+            '1/1/2026 2:34,Raast In,"Incoming fund transfer from Muhammad",20000,20263.55',
+            '1/1/2026 16:04,Peer to Peer,"Money sent to brother",1000,19263.55',
+            '1/1/2026 16:14,Cash Withdrawal,"Cash Withdrawn at ATM|Visa xxxx3388",18000,263.55',
+            '1/3/2026 19:01,POS,"Paid to BLANCO RAWALPINDI PK|Visa xxxx3388",101,462.55',
+            '1/13/2026 9:14,Mobile Top-Up,"Mobile top-up purchased |Zong 03165251122",3000,2007.55',
+        ]
+    )
+
+    preview_response = client.post(
+        "/api/v1/imports/csv/preview-text",
+        json={
+            "source_name": "nayapay-type-labels.csv",
+            "content": csv_content,
+        },
+        headers=headers,
+    )
+    assert preview_response.status_code == 200
+    preview_body = preview_response.json()
+
+    assert preview_body["parsed_count"] == 5
+    assert preview_body["skipped_count"] == 0
+    assert [row["type"] for row in preview_body["rows"]] == [
+        "income",
+        "expense",
+        "expense",
+        "expense",
+        "expense",
+    ]
+
+
+def test_csv_import_preview_supports_textual_month_with_ampm_timestamp(client: TestClient) -> None:
+    auth = _signup_and_get_auth(client, "textualmonth@example.com")
+    headers = _auth_headers(auth["access_token"])
+
+    csv_content = "\n".join(
+        [
+            "TIMESTAMP,TYPE,DESCRIPTION,AMOUNT,BALANCE",
+            '01 Jan 2026 2:34 AM,Raast In,"Incoming fund transfer from Muhammad",20000,20263.55',
+            '01 Jan 2026 4:04 PM,Peer to Peer,"Money sent to brother",-1000,19263.55',
+        ]
+    )
+
+    preview_response = client.post(
+        "/api/v1/imports/csv/preview-text",
+        json={
+            "source_name": "nayapay-textual-month.csv",
+            "content": csv_content,
+        },
+        headers=headers,
+    )
+    assert preview_response.status_code == 200
+    preview_body = preview_response.json()
+
+    assert preview_body["parsed_count"] == 2
+    assert preview_body["skipped_count"] == 0
+    assert preview_body["rows"][0]["transaction_date"] == "2026-01-01"
+    assert preview_body["rows"][1]["transaction_date"] == "2026-01-01"
+
+
+def test_xlsx_import_preview_base64_flow(client: TestClient) -> None:
+    auth = _signup_and_get_auth(client, "xlsximport@example.com")
+    headers = _auth_headers(auth["access_token"])
+
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Statement"
+    worksheet.append(["TIMESTAMP", "TYPE", "DESCRIPTION", "AMOUNT", "BALANCE"])
+    worksheet.append(["01 Jan 2026 2:34 AM", "Raast In", "Incoming fund transfer from Muhammad", 20000, 20263.55])
+    worksheet.append(["01 Jan 2026 4:04 PM", "Peer to Peer", "Money sent to brother", -1000, 19263.55])
+
+    buffer = io.BytesIO()
+    workbook.save(buffer)
+    payload = {
+        "source_name": "nayapay-january.xlsx",
+        "content_base64": base64.b64encode(buffer.getvalue()).decode("ascii"),
+    }
+
+    preview_response = client.post(
+        "/api/v1/imports/xlsx/preview-base64",
+        json=payload,
+        headers=headers,
+    )
+    assert preview_response.status_code == 200
+    preview_body = preview_response.json()
+
+    assert preview_body["source_name"] == "nayapay-january.xlsx"
+    assert preview_body["parsed_count"] == 2
+    assert preview_body["skipped_count"] == 0
+    assert preview_body["rows"][0]["type"] == "income"
+    assert preview_body["rows"][1]["type"] == "expense"
+
+
+def test_import_preview_maps_real_statement_titles_to_new_categories(client: TestClient) -> None:
+    auth = _signup_and_get_auth(client, "categorymapping@example.com")
+    headers = _auth_headers(auth["access_token"])
+
+    csv_content = "\n".join(
+        [
+            "TIMESTAMP,TYPE,DESCRIPTION,AMOUNT,BALANCE",
+            '01 Jan 2026 2:34 AM,Raast In,"Incoming fund transfer from Muhammad",20000,20263.55',
+            '01 Jan 2026 4:04 PM,Peer to Peer,"Money sent to brother",-1000,19263.55',
+            '01 Jan 2026 4:14 PM,Cash Withdrawal,"Cash Withdrawn at ATM|Visa xxxx3388",-18000,263.55',
+            '03 Jan 2026 7:01 PM,POS,"Paid to SHELL RAWALPINDI PK|Visa xxxx3388",-350,462.55',
+            '03 Jan 2026 7:05 PM,POS,"Paid to D WATSON ISLAMABAD PK|Visa xxxx3388",-110,352.55',
+            '03 Jan 2026 7:10 PM,Mobile Top-Up,"Mobile top-up purchased |Ufone 03317775401",-650,292.55',
+            '03 Jan 2026 7:15 PM,POS,"Paid Traffic Challan|Ticket Number 492623119422003670",-2015,0.00',
+            '03 Jan 2026 7:20 PM,POS,"Paid to DeepSeek Hangzhou CN|Visa xxxx3388, USD 2.12",-706.49,0.00',
+            '03 Jan 2026 7:25 PM,POS,"Paid to CHEEZIOUS RAWALPINDI PK|Visa xxxx3388",-955,0.00',
+        ]
+    )
+
+    preview_response = client.post(
+        "/api/v1/imports/csv/preview-text",
+        json={
+            "source_name": "real-history-mapping.csv",
+            "content": csv_content,
+        },
+        headers=headers,
+    )
+    assert preview_response.status_code == 200
+    preview_body = preview_response.json()
+    rows_by_title = {row["title"]: row for row in preview_body["rows"]}
+
+    assert rows_by_title["Incoming fund transfer from Muhammad"]["category_name"] == "Transfers In"
+    assert rows_by_title["Money sent to brother"]["category_name"] == "Peer / Family Support"
+    assert rows_by_title["Cash Withdrawn at ATM|Visa xxxx3388"]["category_name"] == "Cash Withdrawal"
+    assert rows_by_title["Paid to SHELL RAWALPINDI PK|Visa xxxx3388"]["category_name"] == "Fuel"
+    assert rows_by_title["Paid to D WATSON ISLAMABAD PK|Visa xxxx3388"]["category_name"] == "Pharmacy / Medicine"
+    assert rows_by_title["Mobile top-up purchased |Ufone 03317775401"]["category_name"] == "Mobile Top-Up"
+    assert rows_by_title["Paid Traffic Challan|Ticket Number 492623119422003670"]["category_name"] == "Fines / Government"
+    assert rows_by_title["Paid to DeepSeek Hangzhou CN|Visa xxxx3388, USD 2.12"]["category_name"] == "Digital Services"
+    assert rows_by_title["Paid to CHEEZIOUS RAWALPINDI PK|Visa xxxx3388"]["category_name"] == "Dining / Fast Food"
 
 
 def _signup_and_get_auth(client: TestClient, email: str) -> dict[str, str]:

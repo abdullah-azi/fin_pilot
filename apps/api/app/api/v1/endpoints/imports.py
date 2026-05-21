@@ -7,13 +7,16 @@ from app.schemas.imports import (
     CSVImportConfirmRequest,
     CSVImportConfirmResponse,
     CSVImportPreviewResponse,
+    CSVImportPreviewTextRequest,
     ImportBatchHistoryResponse,
+    XLSXImportPreviewBase64Request,
 )
 from app.services.csv_imports import (
     build_preview_response,
     confirm_csv_import,
     list_import_batches,
     preview_csv_import,
+    preview_xlsx_import,
 )
 
 router = APIRouter()
@@ -43,6 +46,48 @@ async def imports_csv_preview(
         user_id=current_user.id,
         file_name=file.filename,
         file_bytes=file_bytes,
+    )
+    return build_preview_response(result)
+
+
+@router.post("/csv/preview-text", response_model=CSVImportPreviewResponse)
+async def imports_csv_preview_text(
+    payload: CSVImportPreviewTextRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> CSVImportPreviewResponse:
+    if payload.source_name and not payload.source_name.lower().endswith(".csv"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only .csv files are supported for statement import.",
+        )
+
+    result = preview_csv_import(
+        db,
+        user_id=current_user.id,
+        file_name=payload.source_name,
+        file_bytes=payload.content.encode("utf-8"),
+    )
+    return build_preview_response(result)
+
+
+@router.post("/xlsx/preview-base64", response_model=CSVImportPreviewResponse)
+async def imports_xlsx_preview_base64(
+    payload: XLSXImportPreviewBase64Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> CSVImportPreviewResponse:
+    if payload.source_name and not payload.source_name.lower().endswith(".xlsx"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only .xlsx files are supported for Excel statement import.",
+        )
+
+    result = preview_xlsx_import(
+        db,
+        user_id=current_user.id,
+        file_name=payload.source_name,
+        content_base64=payload.content_base64,
     )
     return build_preview_response(result)
 

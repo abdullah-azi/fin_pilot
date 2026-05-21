@@ -1,5 +1,7 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
@@ -16,14 +18,22 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { Buffer } from 'buffer';
 
 import type { AuthUser } from '@/lib/api/auth';
 import { authPalette, typography } from '@/constants/theme';
 import { ApiError } from '@/lib/api/client';
+import { fetchReportExport } from '@/lib/api/insights';
 import { listSavingsGoals } from '@/lib/api/savings-goals';
-import { getTransactionHistory, type Transaction } from '@/lib/api/transactions';
+import {
+  backfillUncategorizedTransactions as backfillUncategorizedTransactionsRequest,
+  deleteAllTransactions as deleteAllTransactionsRequest,
+  getTransactionHistory,
+  type Transaction,
+} from '@/lib/api/transactions';
 import {
   changeCurrentUserPassword,
+  deleteCurrentUser,
   deleteCurrentUserProfileImage,
   getCurrentUserProfile,
   resolveProfileImageUrl,
@@ -41,6 +51,8 @@ const COUNTRY_TO_CURRENCY: Record<string, string> = {
 };
 const COUNTRY_OPTIONS = Object.keys(COUNTRY_TO_CURRENCY);
 const CURRENCY_OPTIONS = Object.values(COUNTRY_TO_CURRENCY);
+const APPEARANCE_OPTIONS = ['dark', 'system', 'light'] as const;
+const LANGUAGE_OPTIONS = ['English', 'Urdu'] as const;
 
 type ProfileStats = {
   activeGoals: number;
@@ -70,12 +82,20 @@ export default function ProfileScreen() {
   const [isEditingPersonalInfo, setIsEditingPersonalInfo] = useState(false);
   const [isEditingCurrencyRegion, setIsEditingCurrencyRegion] = useState(false);
   const [isEditingMonthStartDay, setIsEditingMonthStartDay] = useState(false);
+  const [isEditingAppearance, setIsEditingAppearance] = useState(false);
+  const [isEditingLanguage, setIsEditingLanguage] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isSavingPersonalInfo, setIsSavingPersonalInfo] = useState(false);
   const [isSavingCurrencyRegion, setIsSavingCurrencyRegion] = useState(false);
   const [isSavingMonthStartDay, setIsSavingMonthStartDay] = useState(false);
+  const [isSavingAppearance, setIsSavingAppearance] = useState(false);
+  const [isSavingLanguage, setIsSavingLanguage] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [isUploadingProfileImage, setIsUploadingProfileImage] = useState(false);
+  const [isExportingData, setIsExportingData] = useState<'csv' | 'pdf' | null>(null);
+  const [isBackfillingTransactions, setIsBackfillingTransactions] = useState(false);
+  const [isDeletingTransactions, setIsDeletingTransactions] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [personalInfoDraft, setPersonalInfoDraft] = useState({
     email: '',
     full_name: '',
@@ -86,6 +106,8 @@ export default function ProfileScreen() {
     currency: 'PKR',
   });
   const [monthStartDraft, setMonthStartDraft] = useState(1);
+  const [appearanceDraft, setAppearanceDraft] = useState<(typeof APPEARANCE_OPTIONS)[number]>('dark');
+  const [languageDraft, setLanguageDraft] = useState<(typeof LANGUAGE_OPTIONS)[number]>('English');
   const [passwordDraft, setPasswordDraft] = useState({
     confirm_password: '',
     current_password: '',
@@ -131,6 +153,8 @@ export default function ProfileScreen() {
       currency: profileUser.currency ?? 'PKR',
     });
     setMonthStartDraft(profileUser.preferences?.month_start_day ?? 1);
+    setAppearanceDraft(normalizeAppearance(profileUser.preferences?.appearance));
+    setLanguageDraft(normalizeLanguage(profileUser.preferences?.language));
   }, [profileUser]);
 
   async function loadProfileData() {
@@ -274,6 +298,54 @@ export default function ProfileScreen() {
     }
   }
 
+  async function handleSaveAppearance() {
+    setIsSavingAppearance(true);
+    setError(null);
+
+    try {
+      const accessToken = await getValidAccessToken();
+      if (!accessToken) {
+        throw new Error('Your session expired. Please log in again.');
+      }
+
+      const updated = await updateCurrentUser(accessToken, {
+        preferences: {
+          appearance: appearanceDraft,
+        },
+      });
+      setProfileUser(updated);
+      setIsEditingAppearance(false);
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : 'Could not update appearance.');
+    } finally {
+      setIsSavingAppearance(false);
+    }
+  }
+
+  async function handleSaveLanguage() {
+    setIsSavingLanguage(true);
+    setError(null);
+
+    try {
+      const accessToken = await getValidAccessToken();
+      if (!accessToken) {
+        throw new Error('Your session expired. Please log in again.');
+      }
+
+      const updated = await updateCurrentUser(accessToken, {
+        preferences: {
+          language: languageDraft,
+        },
+      });
+      setProfileUser(updated);
+      setIsEditingLanguage(false);
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : 'Could not update language.');
+    } finally {
+      setIsSavingLanguage(false);
+    }
+  }
+
   async function handleSavePassword() {
     setIsSavingPassword(true);
     setError(null);
@@ -303,6 +375,191 @@ export default function ProfileScreen() {
       setError(caughtError instanceof Error ? caughtError.message : 'Could not change password.');
     } finally {
       setIsSavingPassword(false);
+    }
+  }
+
+  async function handleExportData(format: 'csv' | 'pdf') {
+    setIsExportingData(format);
+    setError(null);
+
+    try {
+      const accessToken = await getValidAccessToken();
+      if (!accessToken) {
+        throw new Error('Your session expired. Please log in again.');
+      }
+
+      const canShare = await Sharing.isAvailableAsync();
+      if (!canShare) {
+        throw new Error('Native file sharing is not available on this device.');
+      }
+
+      const exported = await fetchReportExport(accessToken, format, 12);
+      const fileName = extractFileName(exported.contentDisposition) ?? `finpilot-export-12m.${format}`;
+      const cacheDirectory = FileSystem.cacheDirectory;
+      if (!cacheDirectory) {
+        throw new Error('Local file storage is not available on this device.');
+      }
+
+      const fileUri = `${cacheDirectory}${fileName}`;
+      if (typeof exported.data === 'string') {
+        await FileSystem.writeAsStringAsync(fileUri, exported.data, {
+          encoding: FileSystem.EncodingType.UTF8,
+        });
+      } else {
+        const base64 = Buffer.from(exported.data).toString('base64');
+        await FileSystem.writeAsStringAsync(fileUri, base64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+      }
+
+      await Sharing.shareAsync(fileUri, {
+        dialogTitle: format === 'pdf' ? 'Share PDF export' : 'Share CSV export',
+        mimeType: exported.contentType,
+        UTI: format === 'pdf' ? 'com.adobe.pdf' : 'public.comma-separated-values-text',
+      });
+    } catch (caughtError) {
+      const message = caughtError instanceof Error ? caughtError.message : 'Could not export data.';
+      setError(message);
+      Alert.alert('Export failed', message);
+    } finally {
+      setIsExportingData(null);
+    }
+  }
+
+  function openExportOptions() {
+    Alert.alert('Export all data', 'Choose the format for your latest 12-month export.', [
+      {
+        text: 'CSV',
+        onPress: () => void handleExportData('csv'),
+      },
+      {
+        text: 'PDF',
+        onPress: () => void handleExportData('pdf'),
+      },
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+    ]);
+  }
+
+  function confirmDeleteAllTransactions() {
+    Alert.alert(
+      'Delete all transactions',
+      'This will remove all income and expense history from your account. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete all',
+          style: 'destructive',
+          onPress: () => void handleDeleteAllTransactions(),
+        },
+      ],
+    );
+  }
+
+  function confirmBackfillUncategorizedTransactions() {
+    Alert.alert(
+      'Backfill uncategorized history',
+      'This will apply the current category rules to transactions that still do not have a category.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Backfill',
+          onPress: () => void handleBackfillUncategorizedTransactions(),
+        },
+      ],
+    );
+  }
+
+  async function handleDeleteAllTransactions() {
+    setIsDeletingTransactions(true);
+    setError(null);
+
+    try {
+      const accessToken = await getValidAccessToken();
+      if (!accessToken) {
+        throw new Error('Your session expired. Please log in again.');
+      }
+
+      const result = await deleteAllTransactionsRequest(accessToken);
+      await loadProfileData();
+      Alert.alert(
+        'Transactions deleted',
+        result.deleted_count === 1 ? '1 transaction was removed.' : `${result.deleted_count} transactions were removed.`,
+      );
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error ? caughtError.message : 'Could not delete your transactions right now.';
+      setError(message);
+      Alert.alert('Delete failed', message);
+    } finally {
+      setIsDeletingTransactions(false);
+    }
+  }
+
+  async function handleBackfillUncategorizedTransactions() {
+    setIsBackfillingTransactions(true);
+    setError(null);
+
+    try {
+      const accessToken = await getValidAccessToken();
+      if (!accessToken) {
+        throw new Error('Your session expired. Please log in again.');
+      }
+
+      const result = await backfillUncategorizedTransactionsRequest(accessToken);
+      await loadProfileData();
+      Alert.alert(
+        'Backfill complete',
+        result.updated_count === 0
+          ? 'No uncategorized transactions matched the current rules.'
+          : `${result.updated_count} of ${result.scanned_count} uncategorized transactions were recategorized.`,
+      );
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error ? caughtError.message : 'Could not backfill your transactions right now.';
+      setError(message);
+      Alert.alert('Backfill failed', message);
+    } finally {
+      setIsBackfillingTransactions(false);
+    }
+  }
+
+  function confirmDeleteAccount() {
+    Alert.alert(
+      'Delete account',
+      'This will permanently delete your FinPilot account and all related data. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete account',
+          style: 'destructive',
+          onPress: () => void handleDeleteAccount(),
+        },
+      ],
+    );
+  }
+
+  async function handleDeleteAccount() {
+    setIsDeletingAccount(true);
+    setError(null);
+
+    try {
+      const accessToken = await getValidAccessToken();
+      if (!accessToken) {
+        throw new Error('Your session expired. Please log in again.');
+      }
+
+      await deleteCurrentUser(accessToken);
+      await logout();
+      router.replace('/(auth)/index' as never);
+    } catch (caughtError) {
+      const message = caughtError instanceof Error ? caughtError.message : 'Could not delete your account.';
+      setError(message);
+      Alert.alert('Delete failed', message);
+    } finally {
+      setIsDeletingAccount(false);
     }
   }
 
@@ -556,7 +813,7 @@ export default function ProfileScreen() {
               background="#161616"
               icon="moon-o"
               iconColor="#888888"
-              onPress={() => showComingSoon('Appearance')}
+              onPress={() => setIsEditingAppearance(true)}
               rightValue={capitalizeLabel(appearance)}
               subtitle="Theme preference"
               title="Appearance"
@@ -565,7 +822,7 @@ export default function ProfileScreen() {
               background="#131520"
               icon="language"
               iconColor="#6366F1"
-              onPress={() => showComingSoon('Language')}
+              onPress={() => setIsEditingLanguage(true)}
               rightValue={language}
               subtitle="App display language"
               title="Language"
@@ -661,9 +918,9 @@ export default function ProfileScreen() {
               icon="shield"
               iconColor="#888888"
               onPress={() => showComingSoon('Two-factor auth')}
+              rightValue="Coming soon"
               subtitle="Extra login protection"
               title="Two-factor auth"
-              trailing={<ValuePill label="Off" tone="green" />}
             />
           </View>
 
@@ -673,7 +930,8 @@ export default function ProfileScreen() {
               background="#131520"
               icon="download"
               iconColor="#6366F1"
-              onPress={() => showComingSoon('Export all data')}
+              onPress={openExportOptions}
+              rightValue={isExportingData ? isExportingData.toUpperCase() : undefined}
               subtitle="Download as CSV or PDF"
               title="Export all data"
             />
@@ -694,10 +952,20 @@ export default function ProfileScreen() {
               title="Import history"
             />
             <SettingRow
+              background="#0D1A12"
+              icon="refresh"
+              iconColor={COLORS.green}
+              onPress={confirmBackfillUncategorizedTransactions}
+              rightValue={isBackfillingTransactions ? 'RUNNING' : undefined}
+              subtitle="Apply current rules to uncategorized transactions"
+              title="Backfill uncategorized history"
+            />
+            <SettingRow
               background="#161616"
               icon="info-circle"
               iconColor="#777777"
               onPress={() => showComingSoon('Privacy policy')}
+              rightValue="Coming soon"
               subtitle="How we use your data"
               title="Privacy policy"
             />
@@ -707,19 +975,19 @@ export default function ProfileScreen() {
           <View style={styles.group}>
             <DangerRow
               icon="trash"
-              onPress={() => showComingSoon('Delete all transactions')}
+              onPress={confirmDeleteAllTransactions}
               title="Delete all transactions"
             />
             <DangerRow
               icon="user-times"
-              onPress={() => showComingSoon('Delete account')}
+              onPress={confirmDeleteAccount}
               title="Delete account"
             />
           </View>
 
-          <Pressable disabled={isSubmitting} onPress={() => void logout()} style={styles.signOutButton}>
+          <Pressable disabled={isSubmitting || isDeletingAccount} onPress={() => void logout()} style={styles.signOutButton}>
             <FontAwesome color="#666666" name="sign-out" size={15} />
-            <Text style={styles.signOutText}>{isSubmitting ? 'Signing out...' : 'Sign out'}</Text>
+            <Text style={styles.signOutText}>{isSubmitting || isDeletingAccount ? 'Signing out...' : 'Sign out'}</Text>
           </Pressable>
 
           <Text style={styles.versionText}>FinPilot v1.0.0 · Built in Pakistan</Text>
@@ -878,6 +1146,98 @@ export default function ProfileScreen() {
                   style={[styles.modalPrimaryButton, isSavingMonthStartDay ? styles.modalButtonBusy : null]}
                 >
                   {isSavingMonthStartDay ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.modalPrimaryButtonText}>Save</Text>
+                  )}
+                </Pressable>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal animationType="slide" onRequestClose={() => setIsEditingAppearance(false)} transparent visible={isEditingAppearance}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Appearance</Text>
+              <Pressable onPress={() => setIsEditingAppearance(false)} style={styles.modalCloseButton}>
+                <FontAwesome color="#888888" name="close" size={15} />
+              </Pressable>
+            </View>
+            <ScrollView contentContainerStyle={styles.modalContent}>
+              <FieldLabel label="Choose the app theme preference" />
+              <View style={styles.optionGrid}>
+                {APPEARANCE_OPTIONS.map((option) => (
+                  <SelectionPill
+                    active={appearanceDraft === option}
+                    key={option}
+                    label={capitalizeLabel(option)}
+                    onPress={() => setAppearanceDraft(option)}
+                  />
+                ))}
+              </View>
+              <View style={styles.modalPreviewCard}>
+                <Text style={styles.modalPreviewLabel}>Current selection</Text>
+                <Text style={styles.modalPreviewValue}>{capitalizeLabel(appearanceDraft)}</Text>
+              </View>
+              <View style={styles.modalActionRow}>
+                <Pressable onPress={() => setIsEditingAppearance(false)} style={styles.modalSecondaryButton}>
+                  <Text style={styles.modalSecondaryButtonText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  disabled={isSavingAppearance}
+                  onPress={() => void handleSaveAppearance()}
+                  style={[styles.modalPrimaryButton, isSavingAppearance ? styles.modalButtonBusy : null]}
+                >
+                  {isSavingAppearance ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.modalPrimaryButtonText}>Save</Text>
+                  )}
+                </Pressable>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal animationType="slide" onRequestClose={() => setIsEditingLanguage(false)} transparent visible={isEditingLanguage}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Language</Text>
+              <Pressable onPress={() => setIsEditingLanguage(false)} style={styles.modalCloseButton}>
+                <FontAwesome color="#888888" name="close" size={15} />
+              </Pressable>
+            </View>
+            <ScrollView contentContainerStyle={styles.modalContent}>
+              <FieldLabel label="Choose the display language" />
+              <View style={styles.optionGrid}>
+                {LANGUAGE_OPTIONS.map((option) => (
+                  <SelectionPill
+                    active={languageDraft === option}
+                    key={option}
+                    label={option}
+                    onPress={() => setLanguageDraft(option)}
+                  />
+                ))}
+              </View>
+              <View style={styles.modalPreviewCard}>
+                <Text style={styles.modalPreviewLabel}>Current selection</Text>
+                <Text style={styles.modalPreviewValue}>{languageDraft}</Text>
+              </View>
+              <View style={styles.modalActionRow}>
+                <Pressable onPress={() => setIsEditingLanguage(false)} style={styles.modalSecondaryButton}>
+                  <Text style={styles.modalSecondaryButtonText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  disabled={isSavingLanguage}
+                  onPress={() => void handleSaveLanguage()}
+                  style={[styles.modalPrimaryButton, isSavingLanguage ? styles.modalButtonBusy : null]}
+                >
+                  {isSavingLanguage ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
                     <Text style={styles.modalPrimaryButtonText}>Save</Text>
@@ -1109,6 +1469,31 @@ function buildPreferencePatch(field: PreferenceToggleKey, nextValue: boolean) {
     default:
       return {};
   }
+}
+
+function extractFileName(contentDisposition: string | null) {
+  if (!contentDisposition) {
+    return null;
+  }
+
+  const match = contentDisposition.match(/filename=\"([^\"]+)\"/i);
+  return match?.[1] ?? null;
+}
+
+function normalizeAppearance(value: string | null | undefined): (typeof APPEARANCE_OPTIONS)[number] {
+  if (value === 'light' || value === 'system') {
+    return value;
+  }
+
+  return 'dark';
+}
+
+function normalizeLanguage(value: string | null | undefined): (typeof LANGUAGE_OPTIONS)[number] {
+  if (value === 'Urdu') {
+    return 'Urdu';
+  }
+
+  return 'English';
 }
 
 function formatMonthStartDay(value: number) {

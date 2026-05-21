@@ -35,6 +35,16 @@ class CSVImportPreviewResponse(BaseModel):
     skipped_rows: list[CSVImportSkippedRow]
 
 
+class CSVImportPreviewTextRequest(BaseModel):
+    source_name: str | None = Field(default=None, max_length=255)
+    content: str = Field(min_length=1)
+
+
+class XLSXImportPreviewBase64Request(BaseModel):
+    source_name: str | None = Field(default=None, max_length=255)
+    content_base64: str = Field(min_length=1)
+
+
 class CSVImportConfirmRow(BaseModel):
     row_index: int
     transaction_date: date

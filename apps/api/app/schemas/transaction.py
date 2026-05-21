@@ -76,3 +76,9 @@ class TransactionListResponse(BaseModel):
 class TransactionBulkDeleteResponse(BaseModel):
     deleted_count: int
     status: str = "deleted"
+
+
+class TransactionBackfillResponse(BaseModel):
+    scanned_count: int
+    updated_count: int
+    status: str = "completed"

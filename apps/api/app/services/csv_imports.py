@@ -1,4 +1,5 @@
 import csv
+import base64
 import hashlib
 import io
 import re
@@ -8,11 +9,12 @@ from decimal import Decimal, InvalidOperation
 from uuid import UUID
 
 from fastapi import HTTPException, status
+from openpyxl import load_workbook
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.import_batch import ImportBatch
-from app.models.enums import CategoryType, TransactionFrequency, TransactionType
+from app.models.enums import TransactionFrequency, TransactionType
 from app.models.transaction import Transaction
 from app.schemas.imports import (
     ImportBatchHistoryItem,
@@ -22,6 +24,7 @@ from app.schemas.imports import (
     CSVImportPreviewRow,
     CSVImportSkippedRow,
 )
+from app.services.category_matching import build_category_lookup, infer_category_match
 from app.services.categories import list_categories
 from app.services.transactions import MONEY_QUANTUM, _ensure_category_access
 
@@ -100,76 +103,52 @@ def preview_csv_import(
 ) -> PreviewCSVResult:
     decoded = _decode_csv_bytes(file_bytes)
     dialect = _sniff_dialect(decoded)
-    reader = csv.DictReader(io.StringIO(decoded), dialect=dialect)
-
-    if not reader.fieldnames:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="CSV file has no header row.",
-        )
-
-    normalized_header_map = {
-        _normalize_header(field_name): field_name
-        for field_name in reader.fieldnames
-        if field_name is not None
-    }
-    detected_columns = [field_name.strip() for field_name in reader.fieldnames if field_name and field_name.strip()]
-
-    if not _has_any_header(normalized_header_map, DATE_HEADERS):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="CSV must include a date column.",
-        )
-
-    if not (
-        _has_any_header(normalized_header_map, AMOUNT_HEADERS)
-        or _has_any_header(normalized_header_map, DEBIT_HEADERS)
-        or _has_any_header(normalized_header_map, CREDIT_HEADERS)
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="CSV must include an amount column or debit/credit columns.",
-        )
-
-    categories = list_categories(db, user_id, include_hidden=True)
-    category_lookup = {category.effective_name.lower(): category for category in categories}
-
-    parsed_rows: list[ParsedImportRow] = []
-    skipped_rows: list[SkippedImportRow] = []
-
-    for row_index, raw_row in enumerate(reader, start=2):
-        compact_preview = {
-            key.strip(): (value or "").strip()
-            for key, value in raw_row.items()
-            if key and ((value or "").strip())
-        }
-
-        if not compact_preview:
-            continue
-
-        try:
-            parsed_rows.append(
-                _parse_csv_row(
-                    row_index=row_index,
-                    raw_row=raw_row,
-                    normalized_header_map=normalized_header_map,
-                    category_lookup=category_lookup,
-                )
-            )
-        except ValueError as exc:
-            skipped_rows.append(
-                SkippedImportRow(
-                    row_index=row_index,
-                    reason=str(exc),
-                    raw_preview=compact_preview,
-                )
-            )
-
-    return PreviewCSVResult(
-        source_name=file_name,
+    detected_columns, data_rows = _extract_header_and_data_rows(decoded, dialect)
+    return _build_preview_result(
+        db,
+        user_id=user_id,
+        file_name=file_name,
         detected_columns=detected_columns,
-        rows=parsed_rows,
-        skipped_rows=skipped_rows,
+        data_rows=data_rows,
+    )
+
+
+def preview_xlsx_import(
+    db: Session,
+    *,
+    user_id: UUID,
+    file_name: str | None,
+    content_base64: str,
+) -> PreviewCSVResult:
+    try:
+        file_bytes = base64.b64decode(content_base64, validate=True)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Excel file content is not valid base64.",
+        ) from exc
+
+    try:
+        workbook = load_workbook(filename=io.BytesIO(file_bytes), data_only=True)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Uploaded Excel file could not be read.",
+        ) from exc
+
+    worksheet = workbook.active
+    spreadsheet_rows = [
+        [_stringify_spreadsheet_cell(cell) for cell in row]
+        for row in worksheet.iter_rows(values_only=True)
+    ]
+
+    detected_columns, data_rows = _extract_header_and_data_rows_from_records(spreadsheet_rows)
+    return _build_preview_result(
+        db,
+        user_id=user_id,
+        file_name=file_name,
+        detected_columns=detected_columns,
+        data_rows=data_rows,
     )
 
 
@@ -346,7 +325,12 @@ def _parse_csv_row(
     title = _extract_title(raw_row, normalized_header_map)
     amount, transaction_type = _extract_amount_and_type(raw_row, normalized_header_map)
     note = _extract_note(raw_row, normalized_header_map)
-    category_id, category_name = _infer_category(title=title, note=note, transaction_type=transaction_type, category_lookup=category_lookup)
+    category_id, category_name = infer_category_match(
+        title=title,
+        note=note,
+        transaction_type=transaction_type,
+        category_lookup=category_lookup,
+    )
 
     raw_preview = {
         key.strip(): (value or "").strip()
@@ -381,6 +365,44 @@ def _decode_csv_bytes(file_bytes: bytes) -> str:
     )
 
 
+def _extract_header_and_data_rows(
+    content: str,
+    dialect: csv.Dialect,
+) -> tuple[list[str], list[tuple[int, dict[str, str]]]]:
+    reader = csv.reader(io.StringIO(content), dialect=dialect)
+    return _extract_header_and_data_rows_from_records(reader)
+
+
+def _extract_header_and_data_rows_from_records(
+    records,
+) -> tuple[list[str], list[tuple[int, dict[str, str]]]]:
+    header_row: list[str] | None = None
+    data_rows: list[tuple[int, dict[str, str]]] = []
+
+    for record_index, row in enumerate(records, start=1):
+        cleaned_row = [cell.strip() for cell in row]
+
+        if header_row is None:
+            if _looks_like_header_row(cleaned_row):
+                header_row = cleaned_row
+            continue
+
+        row_mapping = {
+            header_row[index]: row[index] if index < len(row) else ""
+            for index in range(len(header_row))
+            if header_row[index]
+        }
+        data_rows.append((record_index, row_mapping))
+
+    if header_row is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="CSV file has no usable header row.",
+        )
+
+    return [field for field in header_row if field], data_rows
+
+
 def _sniff_dialect(content: str) -> csv.Dialect:
     sample = content[:2048]
     try:
@@ -391,6 +413,96 @@ def _sniff_dialect(content: str) -> csv.Dialect:
 
 def _normalize_header(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", value.strip().lower()).strip("_")
+
+
+def _stringify_spreadsheet_cell(value) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%d %H:%M:%S")
+    if isinstance(value, date):
+        return value.isoformat()
+    return str(value)
+
+
+def _build_preview_result(
+    db: Session,
+    *,
+    user_id: UUID,
+    file_name: str | None,
+    detected_columns: list[str],
+    data_rows: list[tuple[int, dict[str, str]]],
+) -> PreviewCSVResult:
+    normalized_header_map = {
+        _normalize_header(field_name): field_name
+        for field_name in detected_columns
+        if field_name is not None
+    }
+
+    if not _has_any_header(normalized_header_map, DATE_HEADERS):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Statement must include a date column.",
+        )
+
+    if not (
+        _has_any_header(normalized_header_map, AMOUNT_HEADERS)
+        or _has_any_header(normalized_header_map, DEBIT_HEADERS)
+        or _has_any_header(normalized_header_map, CREDIT_HEADERS)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Statement must include an amount column or debit/credit columns.",
+        )
+
+    categories = list_categories(db, user_id, include_hidden=True)
+    category_lookup = build_category_lookup(categories)
+
+    parsed_rows: list[ParsedImportRow] = []
+    skipped_rows: list[SkippedImportRow] = []
+
+    for row_index, raw_row in data_rows:
+        compact_preview = {
+            key.strip(): (value or "").strip()
+            for key, value in raw_row.items()
+            if key and ((value or "").strip())
+        }
+
+        if not compact_preview:
+            continue
+
+        try:
+            parsed_rows.append(
+                _parse_csv_row(
+                    row_index=row_index,
+                    raw_row=raw_row,
+                    normalized_header_map=normalized_header_map,
+                    category_lookup=category_lookup,
+                )
+            )
+        except ValueError as exc:
+            skipped_rows.append(
+                SkippedImportRow(
+                    row_index=row_index,
+                    reason=str(exc),
+                    raw_preview=compact_preview,
+                )
+            )
+
+    return PreviewCSVResult(
+        source_name=file_name,
+        detected_columns=detected_columns,
+        rows=parsed_rows,
+        skipped_rows=skipped_rows,
+    )
+
+
+def _looks_like_header_row(row: list[str]) -> bool:
+    normalized_cells = {_normalize_header(cell) for cell in row if cell.strip()}
+    has_date = any(candidate in normalized_cells for candidate in DATE_HEADERS)
+    has_title = any(candidate in normalized_cells for candidate in TITLE_HEADERS)
+    has_amount = any(candidate in normalized_cells for candidate in AMOUNT_HEADERS + DEBIT_HEADERS + CREDIT_HEADERS)
+    return has_date and has_title and has_amount
 
 
 def _has_any_header(normalized_header_map: dict[str, str], candidates: tuple[str, ...]) -> bool:
@@ -439,7 +551,12 @@ def _extract_amount_and_type(
     normalized_header_map: dict[str, str],
 ) -> tuple[Decimal, TransactionType]:
     explicit_type_value = _find_value(raw_row, normalized_header_map, TYPE_HEADERS)
-    explicit_type = _parse_type_value(explicit_type_value) if explicit_type_value else None
+    title_value = _find_value(raw_row, normalized_header_map, TITLE_HEADERS)
+    explicit_type = (
+        _parse_type_value(explicit_type_value, title_hint=title_value)
+        if explicit_type_value
+        else _infer_transaction_type_from_text(title_value)
+    )
 
     amount_value = _find_value(raw_row, normalized_header_map, AMOUNT_HEADERS)
     if amount_value:
@@ -466,7 +583,11 @@ def _extract_amount_and_type(
     if credit_amount and credit_amount > 0:
         return credit_amount.quantize(MONEY_QUANTUM), TransactionType.INCOME
 
-    raise ValueError("Could not determine whether this row is income or expense.")
+    raise ValueError(
+        f"Could not determine whether this row is income or expense. "
+        f"type={explicit_type_value or 'missing'} amount={amount_value or 'missing'} "
+        f"debit={debit_value or 'missing'} credit={credit_value or 'missing'}"
+    )
 
 
 def _extract_note(raw_row: dict[str, str | None], normalized_header_map: dict[str, str]) -> str | None:
@@ -480,41 +601,6 @@ def _extract_note(raw_row: dict[str, str | None], normalized_header_map: dict[st
         parts.append(f"Balance: {balance_value}")
 
     return " | ".join(parts)[:255] if parts else None
-
-
-def _infer_category(*, title: str, note: str | None, transaction_type: TransactionType, category_lookup):
-    haystack = f"{title} {note or ''}".lower()
-    keyword_map = {
-        "Groceries": ("grocery", "mart", "superstore", "imtiaz", "carrefour", "metro"),
-        "Food": ("food", "restaurant", "cafe", "coffee", "burger", "pizza", "meal"),
-        "Transport": ("uber", "careem", "fuel", "petrol", "bus", "metrobus", "transport"),
-        "Subscriptions": ("netflix", "spotify", "youtube", "adobe", "subscription"),
-        "Utilities": ("electric", "gas", "water", "internet", "wifi", "utility"),
-        "Health": ("hospital", "pharmacy", "clinic", "medical", "doctor"),
-        "Shopping": ("store", "mall", "shopping", "daraz", "amazon"),
-        "Education": ("school", "college", "university", "course", "tuition"),
-        "Salary": ("salary", "payroll", "wage"),
-        "Investment": ("profit", "dividend", "investment", "mutual"),
-        "Freelance": ("freelance", "upwork", "fiverr", "client"),
-    }
-
-    candidate_names = list(keyword_map.keys())
-    if transaction_type == TransactionType.EXPENSE:
-        candidate_names = [name for name in candidate_names if name not in {"Salary", "Investment", "Freelance"}]
-    else:
-        candidate_names = [name for name in candidate_names if name in {"Salary", "Investment", "Freelance"}]
-
-    for category_name in candidate_names:
-        if any(keyword in haystack for keyword in keyword_map[category_name]):
-            category = category_lookup.get(category_name.lower())
-            if category and (
-                category.type == CategoryType.BOTH
-                or (transaction_type == TransactionType.EXPENSE and category.type == CategoryType.EXPENSE)
-                or (transaction_type == TransactionType.INCOME and category.type == CategoryType.INCOME)
-            ):
-                return category.id, category.effective_name
-
-    return None, None
 
 
 def _parse_date(value: str) -> date | None:
@@ -533,9 +619,19 @@ def _parse_date(value: str) -> date | None:
         "%Y/%m/%d",
         "%d %b %Y",
         "%d %B %Y",
+        "%d/%m/%Y %H:%M",
+        "%m/%d/%Y %H:%M",
+        "%d %b %Y %I:%M %p",
+        "%d %B %Y %I:%M %p",
+        "%d %b %Y %H:%M",
+        "%d %B %Y %H:%M",
         "%Y-%m-%d %H:%M:%S",
         "%d/%m/%Y %H:%M:%S",
         "%m/%d/%Y %H:%M:%S",
+        "%d %b %Y %I:%M:%S %p",
+        "%d %B %Y %I:%M:%S %p",
+        "%d %b %Y %H:%M:%S",
+        "%d %B %Y %H:%M:%S",
     )
     for fmt in datetime_formats:
         try:
@@ -576,12 +672,48 @@ def _parse_decimal(value: str | None) -> Decimal | None:
     return amount
 
 
-def _parse_type_value(value: str) -> TransactionType | None:
+def _parse_type_value(value: str, *, title_hint: str | None = None) -> TransactionType | None:
     normalized = _normalize_header(value)
     if normalized in {"expense", "debit", "dr", "withdrawal", "money_out"}:
         return TransactionType.EXPENSE
     if normalized in {"income", "credit", "cr", "deposit", "money_in"}:
         return TransactionType.INCOME
+    if normalized in {"raast_in", "ibft_in", "incoming_transfer", "funds_received"}:
+        return TransactionType.INCOME
+    if normalized in {"raast_out", "cash_withdrawal", "cash_out", "pos", "mobile_top_up"}:
+        return TransactionType.EXPENSE
+    if normalized == "peer_to_peer":
+        return _infer_transaction_type_from_text(title_hint)
+    return _infer_transaction_type_from_text(title_hint or value)
+
+
+def _infer_transaction_type_from_text(value: str | None) -> TransactionType | None:
+    if not value:
+        return None
+
+    normalized = value.strip().lower()
+    income_markers = (
+        "incoming",
+        "received",
+        "receive",
+        "salary",
+        "deposit",
+        "fund transfer from",
+    )
+    expense_markers = (
+        "outgoing",
+        "sent",
+        "send",
+        "paid to",
+        "cash withdrawn",
+        "top-up purchased",
+        "withdrawal",
+    )
+
+    if any(marker in normalized for marker in income_markers):
+        return TransactionType.INCOME
+    if any(marker in normalized for marker in expense_markers):
+        return TransactionType.EXPENSE
     return None
 
 

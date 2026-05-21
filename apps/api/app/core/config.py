@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 30
+    password_reset_token_expire_minutes: int = 30
+    resend_api_key: str = ""
+    resend_base_url: str = "https://api.resend.com"
+    resend_from_email: str = ""
+    resend_reply_to_email: str = ""
+    password_reset_url_base: str = ""
     grok_api_key: str = ""
     deepseek_api_key: str = ""
     huggingface_api_key: str = ""
@@ -55,6 +61,13 @@ class Settings(BaseSettings):
             return value.rstrip("/")
         return "https://api.deepseek.com"
 
+    @field_validator("resend_base_url", mode="before")
+    @classmethod
+    def normalize_resend_base_url(cls, value: object) -> object:
+        if isinstance(value, str) and value.strip():
+            return value.rstrip("/")
+        return "https://api.resend.com"
+
     @property
     def active_ai_api_key(self) -> str:
         if self.ai_provider == "deepseek" and self.deepseek_api_key:
@@ -62,6 +75,10 @@ class Settings(BaseSettings):
         if self.ai_provider == "grok" and self.grok_api_key:
             return self.grok_api_key
         return self.ai_api_key
+
+    @property
+    def resend_enabled(self) -> bool:
+        return bool(self.resend_api_key and self.resend_from_email)
 
 
 @lru_cache

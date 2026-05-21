@@ -60,6 +60,25 @@ export type RefreshPayload = {
   refresh_token: string;
 };
 
+export type ForgotPasswordPayload = {
+  email: string;
+};
+
+export type ForgotPasswordResponse = {
+  status: string;
+  reset_token: string | null;
+  expires_in_seconds: number | null;
+};
+
+export type ResetPasswordPayload = {
+  token: string;
+  new_password: string;
+};
+
+export type ResetPasswordResponse = {
+  status: string;
+};
+
 export async function login(payload: LoginPayload) {
   return apiRequest<AuthResponse>('/auth/login', {
     method: 'POST',
@@ -89,6 +108,20 @@ export async function logout(accessToken: string) {
 
 export async function refreshSession(payload: RefreshPayload) {
   return apiRequest<AuthResponse>('/auth/refresh', {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export async function forgotPassword(payload: ForgotPasswordPayload) {
+  return apiRequest<ForgotPasswordResponse>('/auth/forgot-password', {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export async function resetPassword(payload: ResetPasswordPayload) {
+  return apiRequest<ResetPasswordResponse>('/auth/reset-password', {
     method: 'POST',
     body: payload,
   });

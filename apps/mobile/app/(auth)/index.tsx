@@ -1,4 +1,5 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -15,13 +16,28 @@ import {
   View,
 } from 'react-native';
 
-import type { LoginPayload, SignupPayload } from '@/lib/api/auth';
+import {
+  forgotPassword,
+  resetPassword,
+  type LoginPayload,
+  type SignupPayload,
+} from '@/lib/api/auth';
 import { API_BASE_URL } from '@/lib/api/config';
 import { useAuth } from '@/providers/AuthProvider';
 import { FinPilotLogo } from '@/components/branding/FinPilotLogo';
 import { authPalette, radius, shadows, spacing, typography } from '@/constants/theme';
 
 type AuthMode = 'login' | 'signup';
+
+type ForgotPasswordState = {
+  email: string;
+};
+
+type ResetPasswordState = {
+  confirmPassword: string;
+  newPassword: string;
+  token: string;
+};
 
 type LoginFormState = {
   email: string;
@@ -64,11 +80,24 @@ export default function AuthScreen() {
   const [mode, setMode] = useState<AuthMode>('login');
   const [showIntro, setShowIntro] = useState(true);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
+  const [isRecoveringPassword, setIsRecoveringPassword] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [forgotPasswordDraft, setForgotPasswordDraft] = useState<ForgotPasswordState>({ email: '' });
+  const [resetPasswordDraft, setResetPasswordDraft] = useState<ResetPasswordState>({
+    confirmPassword: '',
+    newPassword: '',
+    token: '',
+  });
+  const [resetTokenHint, setResetTokenHint] = useState<string | null>(null);
+  const [forgotPasswordMessage, setForgotPasswordMessage] = useState<string | null>(null);
 
   const introOpacity = useRef(new Animated.Value(1)).current;
   const introScale = useRef(new Animated.Value(1)).current;
   const authOpacity = useRef(new Animated.Value(0)).current;
   const authTranslateY = useRef(new Animated.Value(32)).current;
+  const handledResetTokenRef = useRef<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -113,6 +142,50 @@ export default function AuthScreen() {
     }
   }, [isAuthenticated, isBootstrapping, showIntro]);
 
+  useEffect(() => {
+    function handleResetDeepLink(url: string | null) {
+      if (!url) {
+        return;
+      }
+
+      const parsed = Linking.parse(url);
+      const routeTarget = normalizeDeepLinkTarget(parsed.path ?? parsed.hostname ?? '');
+      if (routeTarget !== 'reset-password') {
+        return;
+      }
+
+      const tokenValue = getDeepLinkToken(parsed.queryParams?.token);
+      if (!tokenValue || handledResetTokenRef.current === tokenValue) {
+        return;
+      }
+
+      handledResetTokenRef.current = tokenValue;
+      setMode('login');
+      setLocalError(null);
+      setForgotPasswordMessage(null);
+      setResetTokenHint(tokenValue);
+      setResetPasswordDraft({
+        confirmPassword: '',
+        newPassword: '',
+        token: tokenValue,
+      });
+      setIsForgotPasswordOpen(false);
+      setIsResetPasswordOpen(true);
+      setShowIntro(false);
+      introOpacity.setValue(0);
+      introScale.setValue(0.92);
+      authOpacity.setValue(1);
+      authTranslateY.setValue(0);
+    }
+
+    void Linking.getInitialURL().then(handleResetDeepLink);
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      handleResetDeepLink(url);
+    });
+
+    return () => subscription.remove();
+  }, [authOpacity, authTranslateY, introOpacity, introScale]);
+
   const displayError = localError ?? error;
 
   async function handleLoginSubmit(payload: LoginPayload) {
@@ -146,6 +219,97 @@ export default function AuthScreen() {
       router.replace('/(tabs)');
     } catch {
       // Error state is managed by the auth provider.
+    }
+  }
+
+  function openForgotPassword() {
+    setLocalError(null);
+    setForgotPasswordMessage(null);
+    setResetTokenHint(null);
+    setForgotPasswordDraft({ email: '' });
+    setResetPasswordDraft({
+      confirmPassword: '',
+      newPassword: '',
+      token: '',
+    });
+    setIsForgotPasswordOpen(true);
+  }
+
+  async function handleForgotPasswordSubmit() {
+    if (!validateEmail(forgotPasswordDraft.email)) {
+      setLocalError('Enter a valid email address.');
+      return;
+    }
+
+    setIsRecoveringPassword(true);
+    setLocalError(null);
+
+    try {
+      const response = await forgotPassword({
+        email: forgotPasswordDraft.email.trim().toLowerCase(),
+      });
+      const hasDevToken = Boolean(response.reset_token);
+      setForgotPasswordMessage(
+        hasDevToken
+          ? 'Reset token generated. You can continue directly below while email delivery is still not wired.'
+          : 'If that account exists, a password reset email will be sent when email delivery is configured.',
+      );
+      setResetTokenHint(response.reset_token);
+      setResetPasswordDraft((current) => ({
+        ...current,
+        token: response.reset_token ?? current.token,
+      }));
+    } catch (caughtError) {
+      setLocalError(caughtError instanceof Error ? caughtError.message : 'Could not start password reset.');
+    } finally {
+      setIsRecoveringPassword(false);
+    }
+  }
+
+  function openResetPassword() {
+    setLocalError(null);
+    setIsForgotPasswordOpen(false);
+    setIsResetPasswordOpen(true);
+  }
+
+  async function handleResetPasswordSubmit() {
+    if (!resetPasswordDraft.token.trim()) {
+      setLocalError('Enter the reset token.');
+      return;
+    }
+
+    if (resetPasswordDraft.newPassword.length < 8) {
+      setLocalError('New password must be at least 8 characters.');
+      return;
+    }
+
+    if (resetPasswordDraft.newPassword !== resetPasswordDraft.confirmPassword) {
+      setLocalError('New password and confirmation do not match.');
+      return;
+    }
+
+    setIsResettingPassword(true);
+    setLocalError(null);
+
+    try {
+      await resetPassword({
+        token: resetPasswordDraft.token.trim(),
+        new_password: resetPasswordDraft.newPassword,
+      });
+      setIsResetPasswordOpen(false);
+      setForgotPasswordMessage(null);
+      setResetTokenHint(null);
+      setResetPasswordDraft({
+        confirmPassword: '',
+        newPassword: '',
+        token: '',
+      });
+      setMode('login');
+      setLocalError('Password reset complete. Log in with your new password.');
+    } catch (caughtError) {
+      setLocalError(caughtError instanceof Error ? caughtError.message : 'Could not reset password.');
+    } finally {
+      setIsResettingPassword(false);
     }
   }
 
@@ -234,6 +398,7 @@ export default function AuthScreen() {
             <LoginForm
               apiBaseUrl={API_BASE_URL}
               isSubmitting={isSubmitting}
+              onForgotPassword={openForgotPassword}
               onSubmit={(payload) => void handleLoginSubmit(payload)}
               onSwitchMode={() => {
                 setLocalError(null);
@@ -243,6 +408,32 @@ export default function AuthScreen() {
           )}
         </ScrollView>
       </Animated.View>
+
+      <ForgotPasswordModal
+        email={forgotPasswordDraft.email}
+        isOpen={isForgotPasswordOpen}
+        isSubmitting={isRecoveringPassword}
+        message={forgotPasswordMessage}
+        onChangeEmail={(value) => setForgotPasswordDraft({ email: value })}
+        onClose={() => setIsForgotPasswordOpen(false)}
+        onContinueReset={openResetPassword}
+        onSubmit={() => void handleForgotPasswordSubmit()}
+        resetTokenHint={resetTokenHint}
+      />
+
+      <ResetPasswordModal
+        draft={resetPasswordDraft}
+        isOpen={isResetPasswordOpen}
+        isSubmitting={isResettingPassword}
+        onChangeDraft={(patch) =>
+          setResetPasswordDraft((current) => ({
+            ...current,
+            ...patch,
+          }))
+        }
+        onClose={() => setIsResetPasswordOpen(false)}
+        onSubmit={() => void handleResetPasswordSubmit()}
+      />
     </SafeAreaView>
   );
 }
@@ -250,11 +441,13 @@ export default function AuthScreen() {
 function LoginForm({
   apiBaseUrl,
   isSubmitting,
+  onForgotPassword,
   onSubmit,
   onSwitchMode,
 }: {
   apiBaseUrl: string;
   isSubmitting: boolean;
+  onForgotPassword: () => void;
   onSubmit: (payload: LoginPayload) => void;
   onSwitchMode: () => void;
 }) {
@@ -290,7 +483,7 @@ function LoginForm({
         }}
       />
 
-      <Pressable>
+      <Pressable onPress={onForgotPassword}>
         <Text style={styles.forgotPassword}>Forgot password?</Text>
       </Pressable>
 
@@ -467,6 +660,154 @@ function SignupForm({
   );
 }
 
+function ForgotPasswordModal({
+  email,
+  isOpen,
+  isSubmitting,
+  message,
+  onChangeEmail,
+  onClose,
+  onContinueReset,
+  onSubmit,
+  resetTokenHint,
+}: {
+  email: string;
+  isOpen: boolean;
+  isSubmitting: boolean;
+  message: string | null;
+  onChangeEmail: (value: string) => void;
+  onClose: () => void;
+  onContinueReset: () => void;
+  onSubmit: () => void;
+  resetTokenHint: string | null;
+}) {
+  return (
+    <Modal animationType="slide" onRequestClose={onClose} transparent visible={isOpen}>
+      <View style={styles.authModalBackdrop}>
+        <View style={styles.authModalSheet}>
+          <View style={styles.authModalHeader}>
+            <Text style={styles.authModalTitle}>Forgot password</Text>
+            <Pressable onPress={onClose} style={styles.authModalCloseButton}>
+              <FontAwesome color={AUTH_COLORS.textMuted} name="close" size={14} />
+            </Pressable>
+          </View>
+          <ScrollView contentContainerStyle={styles.authModalContent}>
+            <Text style={styles.authModalCopy}>
+              Enter your email and FinPilot will generate a reset flow. Email delivery is not wired yet, so development
+              mode shows the token directly.
+            </Text>
+            <Field
+              autoCapitalize="none"
+              autoComplete="off"
+              autoCorrect={false}
+              icon="envelope-o"
+              initialValue={email}
+              keyboardType="email-address"
+              label="EMAIL"
+              placeholder="you@example.com"
+              onValueChange={onChangeEmail}
+            />
+            {message ? <Text style={styles.authModalSuccess}>{message}</Text> : null}
+            {resetTokenHint ? (
+              <View style={styles.devTokenCard}>
+                <Text style={styles.devTokenLabel}>Development reset token</Text>
+                <Text style={styles.devTokenValue}>{resetTokenHint}</Text>
+              </View>
+            ) : null}
+            <Pressable disabled={isSubmitting} onPress={onSubmit} style={styles.primaryButton}>
+              {isSubmitting ? (
+                <ActivityIndicator color={AUTH_COLORS.text} />
+              ) : (
+                <Text style={styles.primaryButtonText}>Generate reset token</Text>
+              )}
+            </Pressable>
+            {resetTokenHint ? (
+              <Pressable onPress={onContinueReset} style={styles.authModalSecondaryButton}>
+                <Text style={styles.authModalSecondaryButtonText}>Continue to reset</Text>
+              </Pressable>
+            ) : null}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function ResetPasswordModal({
+  draft,
+  isOpen,
+  isSubmitting,
+  onChangeDraft,
+  onClose,
+  onSubmit,
+}: {
+  draft: ResetPasswordState;
+  isOpen: boolean;
+  isSubmitting: boolean;
+  onChangeDraft: (patch: Partial<ResetPasswordState>) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <Modal animationType="slide" onRequestClose={onClose} transparent visible={isOpen}>
+      <View style={styles.authModalBackdrop}>
+        <View style={styles.authModalSheet}>
+          <View style={styles.authModalHeader}>
+            <Text style={styles.authModalTitle}>Reset password</Text>
+            <Pressable onPress={onClose} style={styles.authModalCloseButton}>
+              <FontAwesome color={AUTH_COLORS.textMuted} name="close" size={14} />
+            </Pressable>
+          </View>
+          <ScrollView contentContainerStyle={styles.authModalContent}>
+            <Text style={styles.authModalCopy}>
+              Paste the reset token and set a new password. In production, this token should come from your email.
+            </Text>
+            <Field
+              autoCapitalize="none"
+              autoComplete="off"
+              autoCorrect={false}
+              icon="key"
+              initialValue={draft.token}
+              label="RESET TOKEN"
+              placeholder="Paste the reset token"
+              onValueChange={(value) => onChangeDraft({ token: value })}
+            />
+            <Field
+              autoCapitalize="none"
+              autoComplete="off"
+              autoCorrect={false}
+              icon="lock"
+              initialValue={draft.newPassword}
+              label="NEW PASSWORD"
+              placeholder="At least 8 characters"
+              secureTextEntry
+              onValueChange={(value) => onChangeDraft({ newPassword: value })}
+            />
+            <Field
+              autoCapitalize="none"
+              autoComplete="off"
+              autoCorrect={false}
+              icon="lock"
+              initialValue={draft.confirmPassword}
+              label="CONFIRM PASSWORD"
+              placeholder="Repeat new password"
+              secureTextEntry
+              onValueChange={(value) => onChangeDraft({ confirmPassword: value })}
+            />
+            <Pressable disabled={isSubmitting} onPress={onSubmit} style={styles.primaryButton}>
+              {isSubmitting ? (
+                <ActivityIndicator color={AUTH_COLORS.text} />
+              ) : (
+                <Text style={styles.primaryButtonText}>Reset password</Text>
+              )}
+            </Pressable>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 function Field({
   icon,
   initialValue = '',
@@ -480,6 +821,10 @@ function Field({
   onValueChange?: (value: string) => void;
 }) {
   const [value, setValue] = useState(initialValue);
+
+  useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
 
   return (
     <View style={styles.field}>
@@ -648,6 +993,23 @@ function validateSignup(payload: SignupPayload) {
   }
 
   return null;
+}
+
+function normalizeDeepLinkTarget(value: string) {
+  return value.trim().replace(/^\/+|\/+$/g, '').toLowerCase();
+}
+
+function getDeepLinkToken(value: unknown) {
+  if (typeof value === 'string') {
+    return value.trim();
+  }
+
+  if (Array.isArray(value)) {
+    const first = value.find((item) => typeof item === 'string' && item.trim().length > 0);
+    return typeof first === 'string' ? first.trim() : '';
+  }
+
+  return '';
 }
 
 type PasswordStrength = {
@@ -988,5 +1350,88 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     marginTop: 16,
     textAlign: 'center',
+  },
+  authModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(6,6,8,0.72)',
+    justifyContent: 'flex-end',
+  },
+  authModalSheet: {
+    maxHeight: '84%',
+    backgroundColor: AUTH_COLORS.surfaceRaised,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: AUTH_COLORS.border,
+    overflow: 'hidden',
+  },
+  authModalHeader: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: AUTH_COLORS.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  authModalTitle: {
+    color: AUTH_COLORS.text,
+    ...typography.sectionTitle,
+  },
+  authModalCloseButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: AUTH_COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  authModalContent: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
+  },
+  authModalCopy: {
+    color: AUTH_COLORS.textMuted,
+    ...typography.caption,
+    marginBottom: spacing.md,
+  },
+  authModalSuccess: {
+    color: AUTH_COLORS.green,
+    ...typography.caption,
+    marginBottom: spacing.sm,
+  },
+  devTokenCard: {
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(124,58,237,0.35)',
+    backgroundColor: 'rgba(124,58,237,0.14)',
+    paddingHorizontal: spacing.md - 2,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  devTokenLabel: {
+    color: AUTH_COLORS.textSoft,
+    ...typography.microLabel,
+    marginBottom: 6,
+  },
+  devTokenValue: {
+    color: AUTH_COLORS.text,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  authModalSecondaryButton: {
+    minHeight: 52,
+    borderRadius: radius.lg - 2,
+    borderWidth: 1,
+    borderColor: AUTH_COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  authModalSecondaryButtonText: {
+    color: AUTH_COLORS.textMuted,
+    ...typography.bodyStrong,
+    fontWeight: '700',
   },
 });

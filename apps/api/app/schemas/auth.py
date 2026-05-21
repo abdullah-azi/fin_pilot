@@ -12,6 +12,15 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=20)
+    new_password: str = Field(min_length=8)
+
+
 class TokenPair(BaseModel):
     access_token: str
     refresh_token: str
@@ -25,4 +34,14 @@ class AuthResponse(TokenPair):
 
 
 class LogoutResponse(BaseModel):
+    status: str
+
+
+class ForgotPasswordResponse(BaseModel):
+    status: str
+    reset_token: str | None = None
+    expires_in_seconds: int | None = None
+
+
+class ResetPasswordResponse(BaseModel):
     status: str

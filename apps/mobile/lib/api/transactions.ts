@@ -46,6 +46,16 @@ export type TransactionListResponse = {
   };
 };
 
+export type TransactionBulkDeleteResponse = {
+  deleted_count: number;
+};
+
+export type TransactionBackfillResponse = {
+  scanned_count: number;
+  updated_count: number;
+  status: string;
+};
+
 export async function createTransaction(accessToken: string, payload: CreateTransactionPayload) {
   return apiRequest<Transaction>('/transactions/', {
     method: 'POST',
@@ -71,6 +81,20 @@ export async function getTransactionHistory(
 
   return apiRequest<TransactionListResponse>(suffix, {
     method: 'GET',
+    accessToken,
+  });
+}
+
+export async function deleteAllTransactions(accessToken: string) {
+  return apiRequest<TransactionBulkDeleteResponse>('/transactions/all', {
+    method: 'DELETE',
+    accessToken,
+  });
+}
+
+export async function backfillUncategorizedTransactions(accessToken: string) {
+  return apiRequest<TransactionBackfillResponse>('/transactions/backfill-uncategorized', {
+    method: 'POST',
     accessToken,
   });
 }

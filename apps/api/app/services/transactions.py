@@ -12,7 +12,8 @@ from app.models.enums import TransactionFrequency, TransactionType
 from app.models.transaction import Transaction
 from app.models.user_category_setting import UserCategorySetting
 from app.schemas.transaction import TransactionCreate, TransactionUpdate
-from app.services.categories import get_accessible_category
+from app.services.category_matching import build_category_lookup, infer_category_match
+from app.services.categories import get_accessible_category, list_categories
 
 MONEY_QUANTUM = Decimal("0.01")
 
@@ -40,6 +41,12 @@ class TransactionHistoryResult:
     limit: int
     offset: int
     summary: TransactionHistorySummary
+
+
+@dataclass(slots=True)
+class TransactionBackfillResult:
+    scanned_count: int
+    updated_count: int
 
 
 def list_transactions(
@@ -219,6 +226,36 @@ def delete_all_transactions(db: Session, user_id: UUID) -> int:
     result = db.execute(delete(Transaction).where(Transaction.user_id == user_id))
     db.commit()
     return int(result.rowcount or 0)
+
+
+def backfill_uncategorized_transactions(db: Session, user_id: UUID) -> TransactionBackfillResult:
+    categories = list_categories(db, user_id, include_hidden=True)
+    category_lookup = build_category_lookup(categories)
+
+    transactions = db.scalars(
+        select(Transaction)
+        .where(Transaction.user_id == user_id, Transaction.category_id.is_(None))
+        .order_by(Transaction.transaction_date.asc(), Transaction.created_at.asc())
+    ).all()
+
+    updated_count = 0
+    for transaction in transactions:
+        category_id, _ = infer_category_match(
+            title=transaction.title,
+            note=transaction.note,
+            transaction_type=transaction.type,
+            category_lookup=category_lookup,
+        )
+        if category_id is None:
+            continue
+
+        transaction.category_id = category_id
+        updated_count += 1
+
+    if updated_count:
+        db.commit()
+
+    return TransactionBackfillResult(scanned_count=len(transactions), updated_count=updated_count)
 
 
 def _build_transaction_filters(

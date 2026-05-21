@@ -1,5 +1,5 @@
-import { API_BASE_URL } from '@/lib/api/config';
-import { ApiError, apiRequest } from '@/lib/api/client';
+import { apiRequest } from '@/lib/api/client';
+import { EncodingType, readAsStringAsync } from 'expo-file-system/legacy';
 
 export type CSVImportPreviewRow = {
   amount: string;
@@ -76,55 +76,37 @@ type UploadableCSVFile = {
   uri: string;
 };
 
-type ErrorPayload = {
-  detail?: string | { msg?: string }[] | Record<string, unknown>;
-};
-
-function extractErrorMessage(payload: ErrorPayload | null, fallback: string) {
-  if (!payload?.detail) {
-    return fallback;
-  }
-
-  if (typeof payload.detail === 'string') {
-    return payload.detail;
-  }
-
-  if (Array.isArray(payload.detail)) {
-    return payload.detail.map((item) => item.msg ?? 'Invalid request').join(', ');
-  }
-
-  return fallback;
-}
-
 export async function previewCSVImport(
   accessToken: string,
   file: UploadableCSVFile,
 ): Promise<CSVImportPreviewResponse> {
-  const formData = new FormData();
-  formData.append(
-    'file',
-    {
-      name: file.name,
-      type: file.mimeType ?? 'text/csv',
-      uri: file.uri,
-    } as never,
-  );
+  const extension = file.name.toLowerCase().split('.').pop();
 
-  const response = await fetch(`${API_BASE_URL}/imports/csv/preview`, {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: formData,
-  });
+  if (extension === 'xlsx') {
+    const contentBase64 = await readAsStringAsync(file.uri, {
+      encoding: EncodingType.Base64,
+    });
 
-  if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as ErrorPayload | null;
-    throw new ApiError(extractErrorMessage(payload, 'Could not preview this CSV file.'), response.status);
+    return apiRequest<CSVImportPreviewResponse>('/imports/xlsx/preview-base64', {
+      accessToken,
+      body: {
+        content_base64: contentBase64,
+        source_name: file.name,
+      },
+      method: 'POST',
+    });
   }
 
-  return (await response.json()) as CSVImportPreviewResponse;
+  const content = await readAsStringAsync(file.uri);
+
+  return apiRequest<CSVImportPreviewResponse>('/imports/csv/preview-text', {
+    accessToken,
+    body: {
+      content,
+      source_name: file.name,
+    },
+    method: 'POST',
+  });
 }
 
 export function confirmCSVImport(accessToken: string, payload: CSVImportConfirmPayload) {

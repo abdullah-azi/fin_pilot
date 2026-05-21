@@ -17,3 +17,15 @@ def test_provider_specific_key_overrides_generic_key() -> None:
     )
 
     assert settings.active_ai_api_key == "deepseek-key"
+
+
+def test_resend_enabled_requires_api_key_and_sender() -> None:
+    disabled = Settings(_env_file=None)
+    enabled = Settings(
+        _env_file=None,
+        resend_api_key="re_test_key",
+        resend_from_email="FinPilot <onboarding@resend.dev>",
+    )
+
+    assert disabled.resend_enabled is False
+    assert enabled.resend_enabled is True

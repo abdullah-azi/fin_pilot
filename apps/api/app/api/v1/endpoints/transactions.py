@@ -9,6 +9,7 @@ from app.models.enums import TransactionType
 from app.models.user import User
 from app.schemas.transaction import (
     TransactionBulkDeleteResponse,
+    TransactionBackfillResponse,
     TransactionCategorySnapshot,
     TransactionCreate,
     TransactionHistoryItemResponse,
@@ -19,6 +20,7 @@ from app.schemas.transaction import (
     TransactionUpdate,
 )
 from app.services.transactions import (
+    backfill_uncategorized_transactions,
     create_transaction,
     delete_all_transactions,
     delete_transaction,
@@ -98,6 +100,15 @@ async def transactions_delete_all(
 ) -> TransactionBulkDeleteResponse:
     deleted_count = delete_all_transactions(db, current_user.id)
     return TransactionBulkDeleteResponse(deleted_count=deleted_count)
+
+
+@router.post("/backfill-uncategorized", response_model=TransactionBackfillResponse)
+async def transactions_backfill_uncategorized(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TransactionBackfillResponse:
+    result = backfill_uncategorized_transactions(db, current_user.id)
+    return TransactionBackfillResponse(scanned_count=result.scanned_count, updated_count=result.updated_count)
 
 
 @router.get("/{transaction_id}", response_model=TransactionResponse)

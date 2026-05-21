@@ -113,6 +113,7 @@ export default function ImportCSVScreen() {
     () => editableRows.filter((row) => duplicateInfo.get(row.fingerprint)),
     [duplicateInfo, editableRows],
   );
+  const allActiveRowsLookDuplicate = editableRows.length > 0 && duplicateRows.length === editableRows.length;
   const bulkCategoryOptions = useMemo(() => {
     if (!selectedRows.length) {
       return [];
@@ -140,7 +141,12 @@ export default function ImportCSVScreen() {
       const picked = await DocumentPicker.getDocumentAsync({
         copyToCacheDirectory: true,
         multiple: false,
-        type: ['text/csv', 'text/comma-separated-values', 'application/vnd.ms-excel'],
+        type: [
+          'text/csv',
+          'text/comma-separated-values',
+          'application/vnd.ms-excel',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ],
       });
 
       if (picked.canceled) {
@@ -148,8 +154,9 @@ export default function ImportCSVScreen() {
       }
 
       const file = picked.assets[0];
-      if (!file?.name?.toLowerCase().endsWith('.csv')) {
-        throw new Error('Please choose a .csv statement file.');
+      const fileName = file?.name?.toLowerCase() ?? '';
+      if (!fileName.endsWith('.csv') && !fileName.endsWith('.xlsx')) {
+        throw new Error('Please choose a .csv or .xlsx statement file.');
       }
 
       const accessToken = await getValidAccessToken();
@@ -183,7 +190,7 @@ export default function ImportCSVScreen() {
       setCategories(nextCategories);
       setExistingTransactions(recentTransactions.items);
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : 'Could not read that CSV file.');
+      setError(caughtError instanceof Error ? caughtError.message : 'Could not read that statement file.');
     } finally {
       setIsPicking(false);
       setIsPreviewing(false);
@@ -429,7 +436,7 @@ export default function ImportCSVScreen() {
           </Pressable>
           <Text style={styles.headerTitle}>Import statement CSV</Text>
           <Text style={styles.headerCopy}>
-            Upload a bank or wallet CSV, review what FinPilot found, edit any row that looks off, then confirm.
+            Upload a bank or wallet CSV/XLSX, review what FinPilot found, edit any row that looks off, then confirm.
           </Text>
         </View>
 
@@ -440,8 +447,8 @@ export default function ImportCSVScreen() {
             </View>
             <Text style={styles.heroTitle}>Bring your transactions in faster</Text>
             <Text style={styles.heroCopy}>
-              CSV works best. FinPilot previews parsed rows, suggests likely categories, and lets you fix individual
-              rows before import.
+              FinPilot previews parsed rows, suggests likely categories, and lets you fix individual rows before
+              import.
             </Text>
             <Pressable
               disabled={isPicking || isPreviewing || isConfirming}
@@ -453,7 +460,7 @@ export default function ImportCSVScreen() {
               ) : (
                 <FontAwesome color="#FFFFFF" name="file-text-o" size={14} />
               )}
-              <Text style={styles.pickButtonText}>{preview ? 'Choose another CSV' : 'Choose CSV file'}</Text>
+              <Text style={styles.pickButtonText}>{preview ? 'Choose another file' : 'Choose CSV or XLSX'}</Text>
             </Pressable>
             {selectedFileName ? <Text style={styles.fileName}>Selected: {selectedFileName}</Text> : null}
           </View>
@@ -491,6 +498,12 @@ export default function ImportCSVScreen() {
                     {duplicateRows.length} row{duplicateRows.length === 1 ? ' looks' : 's look'} similar to another CSV row
                     or an existing transaction. Review them or bulk-ignore before import.
                   </Text>
+                  {allActiveRowsLookDuplicate ? (
+                    <Text style={styles.duplicateSummaryEmphasis}>
+                      All active rows look like duplicates. This usually means this statement was already imported into
+                      this account.
+                    </Text>
+                  ) : null}
                 </View>
               ) : null}
 
@@ -789,6 +802,7 @@ export default function ImportCSVScreen() {
                 <SummaryLine label="Active rows" value={String(editableRows.length)} />
                 <SummaryLine label="Ignored rows" value={String(ignoredRows.length)} />
                 <SummaryLine label="Parsing skipped rows" value={String(preview?.skipped_rows.length ?? 0)} />
+                <SummaryLine label="Likely duplicates" value={String(duplicateRows.length)} />
               </View>
 
               <View style={styles.summarySection}>
@@ -1298,6 +1312,13 @@ const styles = StyleSheet.create({
     color: '#D6C08F',
     fontSize: 10,
     lineHeight: 15,
+  },
+  duplicateSummaryEmphasis: {
+    color: '#F6D084',
+    fontSize: 10,
+    lineHeight: 15,
+    fontWeight: '700',
+    marginTop: 8,
   },
   sectionCard: {
     backgroundColor: COLORS.surface,
