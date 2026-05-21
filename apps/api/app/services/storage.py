@@ -49,14 +49,14 @@ class LocalStorageBackend(StorageBackend):
     def save_bytes(self, *, key: str, content_type: str, data: bytes) -> StoredFile:
         del content_type
         safe_key = _normalize_key(key)
-        file_path = self.root / Path(safe_key.replace("/", "\\"))
+        file_path = self.root / Path(*PurePosixPath(safe_key).parts)
         file_path.parent.mkdir(parents=True, exist_ok=True)
         file_path.write_bytes(data)
         return StoredFile(key=safe_key, public_url=f"{self.public_base_url}/{safe_key}")
 
     def delete(self, key: str) -> None:
         safe_key = _normalize_key(key)
-        file_path = self.root / Path(safe_key.replace("/", "\\"))
+        file_path = self.root / Path(*PurePosixPath(safe_key).parts)
         if file_path.exists():
             file_path.unlink()
 

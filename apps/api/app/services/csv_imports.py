@@ -225,12 +225,27 @@ def confirm_csv_import(
         )
         for transaction in existing_rows
     }
+    existing_fingerprints = {
+        _row_fingerprint(
+            transaction.transaction_date,
+            transaction.type,
+            transaction.amount,
+            transaction.title,
+            _extract_balance_from_note(transaction.note),
+        )
+        for transaction in existing_rows
+    }
 
     seen_payload_keys: set[tuple[date, str, str, str, str | None]] = set()
+    seen_payload_fingerprints: set[str] = set()
     imported_transaction_ids: list[UUID] = []
     skipped_duplicates: list[int] = []
 
     for row in payload.rows:
+        if row.fingerprint in existing_fingerprints or row.fingerprint in seen_payload_fingerprints:
+            skipped_duplicates.append(row.row_index)
+            continue
+
         duplicate_key = _build_duplicate_key(
             row.transaction_date,
             row.type,
@@ -260,6 +275,8 @@ def confirm_csv_import(
         imported_transaction_ids.append(transaction.id)
         existing_keys.add(duplicate_key)
         seen_payload_keys.add(duplicate_key)
+        existing_fingerprints.add(row.fingerprint)
+        seen_payload_fingerprints.add(row.fingerprint)
 
     import_batch = ImportBatch(
         user_id=user_id,
