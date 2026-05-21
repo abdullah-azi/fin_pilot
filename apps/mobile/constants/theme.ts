@@ -36,6 +36,8 @@ export const spacing = {
   xxl: 32,
 } as const;
 
+export const screenTopClearance = 14 as const;
+
 export const radius = {
   sm: 10,
   md: 14,
@@ -121,6 +123,7 @@ export const theme = {
     colors: authPalette,
   },
   spacing,
+  screenTopClearance,
   radius,
   typography,
   shadows,

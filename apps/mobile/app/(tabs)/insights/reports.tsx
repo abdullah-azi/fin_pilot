@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { Buffer } from 'buffer';
 
-import { authPalette, typography } from '@/constants/theme';
+import { authPalette, screenTopClearance, typography } from '@/constants/theme';
 import { ApiError } from '@/lib/api/client';
 import {
   fetchReportExport,
@@ -858,7 +858,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 18,
-    paddingTop: 28,
+    paddingTop: 28 + screenTopClearance,
     paddingBottom: 12,
     borderBottomWidth: 0.5,
     borderBottomColor: '#1E1E1E',

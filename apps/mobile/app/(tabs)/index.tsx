@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 
-import { authPalette, typography } from '@/constants/theme';
+import { authPalette, screenTopClearance, typography } from '@/constants/theme';
 import { ApiError } from '@/lib/api/client';
 import { getDashboardSummary, type DashboardSummaryResponse, type DashboardTransaction } from '@/lib/api/dashboard';
 import { useAuth } from '@/providers/AuthProvider';
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#161616',
     borderBottomWidth: 0.5,
     borderBottomColor: '#272727',
-    paddingTop: 34,
+    paddingTop: 34 + screenTopClearance,
     paddingHorizontal: 18,
     paddingBottom: 22,
   },

@@ -18,7 +18,9 @@ dependencies = [
   "email-validator",
   "PyJWT",
   "httpx",
-  "openpyxl"
+  "openpyxl",
+  "boto3",
+  "alembic"
 ]
 
 [project.optional-dependencies]

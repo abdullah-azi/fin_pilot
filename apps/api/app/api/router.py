@@ -8,6 +8,7 @@ from app.api.v1.endpoints import (
     health,
     imports,
     insights,
+    notifications,
     savings_goals,
     transactions,
     users,
@@ -24,3 +25,4 @@ api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboar
 api_router.include_router(health.router, prefix="/health", tags=["health"])
 api_router.include_router(imports.router, prefix="/imports", tags=["imports"])
 api_router.include_router(insights.router, prefix="/insights", tags=["insights"])
+api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])

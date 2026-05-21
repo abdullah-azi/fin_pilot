@@ -76,6 +76,11 @@ export async function readStoredSession() {
 
 export async function writeStoredSession(payload: AuthResponse) {
   const session = mapAuthResponseToStoredSession(payload);
+  await persistStoredSession(session);
+  return session;
+}
+
+export async function persistStoredSession(session: StoredAuthSession) {
   const rawSession = JSON.stringify(session);
 
   if (isWeb()) {

@@ -1,5 +1,4 @@
 import secrets
-from pathlib import Path
 from typing import cast
 from uuid import UUID
 
@@ -11,8 +10,7 @@ from app.core.security import hash_password, verify_password
 from app.models.user import User
 from app.models.user_preference import UserPreference
 from app.schemas.user import PasswordChangeRequest, UserCreate, UserPreferenceUpdate, UserUpdate
-
-UPLOAD_ROOT = Path(__file__).resolve().parents[2] / "uploads" / "profile-images"
+from app.services.storage import get_storage_backend, resolve_storage_key
 ALLOWED_PROFILE_IMAGE_TYPES = {
     "image/jpeg": ".jpg",
     "image/png": ".png",
@@ -128,7 +126,7 @@ def update_user(db: Session, user_id: UUID, payload: UserUpdate) -> User:
 
 def delete_user(db: Session, user_id: UUID) -> None:
     user = get_user_or_404(db, user_id)
-    _delete_profile_image_file(user.profile_image_url)
+    _delete_profile_image_file(user.profile_image_storage_key, user.profile_image_url)
     db.delete(user)
     db.commit()
 
@@ -160,6 +158,7 @@ def save_profile_image(
     file_bytes: bytes,
 ) -> User:
     user = get_user_or_404(db, user_id)
+    storage = get_storage_backend()
 
     if not content_type or content_type not in ALLOWED_PROFILE_IMAGE_TYPES:
         raise HTTPException(
@@ -179,21 +178,25 @@ def save_profile_image(
             detail="Profile image must be 5 MB or smaller.",
         )
 
-    UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
     extension = ALLOWED_PROFILE_IMAGE_TYPES[content_type]
     file_name = f"{user.id}-{secrets.token_hex(8)}{extension}"
-    file_path = UPLOAD_ROOT / file_name
-    file_path.write_bytes(file_bytes)
+    stored_file = storage.save_bytes(
+        key=f"profile-images/{file_name}",
+        content_type=content_type,
+        data=file_bytes,
+    )
 
-    _delete_profile_image_file(user.profile_image_url)
-    user.profile_image_url = f"/uploads/profile-images/{file_name}"
+    _delete_profile_image_file(user.profile_image_storage_key, user.profile_image_url)
+    user.profile_image_storage_key = stored_file.key
+    user.profile_image_url = stored_file.public_url
     db.commit()
     return get_user_or_404(db, user_id)
 
 
 def delete_profile_image(db: Session, user_id: UUID) -> User:
     user = get_user_or_404(db, user_id)
-    _delete_profile_image_file(user.profile_image_url)
+    _delete_profile_image_file(user.profile_image_storage_key, user.profile_image_url)
+    user.profile_image_storage_key = None
     user.profile_image_url = None
     db.commit()
     return get_user_or_404(db, user_id)
@@ -213,11 +216,16 @@ def _upsert_preferences(user: User, payload: UserPreferenceUpdate) -> None:
         setattr(preferences, field_name, value)
 
 
-def _delete_profile_image_file(profile_image_url: str | None) -> None:
-    if not profile_image_url:
+def _delete_profile_image_file(
+    profile_image_storage_key: str | None,
+    profile_image_url: str | None,
+) -> None:
+    storage = get_storage_backend()
+    storage_key = resolve_storage_key(
+        storage,
+        stored_key=profile_image_storage_key,
+        public_url=profile_image_url,
+    )
+    if not storage_key:
         return
-
-    file_name = Path(profile_image_url).name
-    file_path = UPLOAD_ROOT / file_name
-    if file_path.exists():
-        file_path.unlink()
+    storage.delete(storage_key)

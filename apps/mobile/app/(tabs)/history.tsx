@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 
-import { authPalette, typography } from '@/constants/theme';
+import { authPalette, screenTopClearance, typography } from '@/constants/theme';
 import { getCategories, type Category } from '@/lib/api/categories';
 import { ApiError } from '@/lib/api/client';
 import { listTransactions, type Transaction, type TransactionType } from '@/lib/api/transactions';
@@ -704,7 +704,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 18,
-    paddingTop: 34,
+    paddingTop: 34 + screenTopClearance,
     paddingBottom: 12,
     borderBottomWidth: 0.5,
     borderBottomColor: '#1E1E1E',

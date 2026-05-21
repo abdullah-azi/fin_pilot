@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { palette, spacing, typography } from '@/constants/theme';
+import { palette, screenTopClearance, spacing, typography } from '@/constants/theme';
 
 type ScreenProps = {
   title: string;
@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
-    paddingTop: spacing.xxl + 4,
+    paddingTop: spacing.xxl + 4 + screenTopClearance,
     gap: spacing.md,
   },
   header: {

@@ -25,7 +25,7 @@ import {
 import { API_BASE_URL } from '@/lib/api/config';
 import { useAuth } from '@/providers/AuthProvider';
 import { FinPilotLogo } from '@/components/branding/FinPilotLogo';
-import { authPalette, radius, shadows, spacing, typography } from '@/constants/theme';
+import { authPalette, radius, screenTopClearance, shadows, spacing, typography } from '@/constants/theme';
 
 type AuthMode = 'login' | 'signup';
 
@@ -1091,7 +1091,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: spacing.lg + 2,
-    paddingTop: spacing.xl + 4,
+    paddingTop: spacing.xl + 4 + screenTopClearance,
     paddingBottom: spacing.xxl + 8,
   },
   logoRow: {

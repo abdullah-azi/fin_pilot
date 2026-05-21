@@ -3,6 +3,7 @@ import { EncodingType, readAsStringAsync } from 'expo-file-system/legacy';
 
 export type CSVImportPreviewRow = {
   amount: string;
+  balance: string | null;
   category_id: string | null;
   category_name: string | null;
   fingerprint: string;
@@ -33,6 +34,7 @@ export type CSVImportConfirmPayload = {
   original_parsed_count?: number | null;
   rows: Array<{
     amount: string;
+    balance: string | null;
     category_id: string | null;
     fingerprint: string;
     note: string | null;

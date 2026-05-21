@@ -138,6 +138,81 @@ def test_category_rename_flows_into_history_and_dashboard(client: TestClient) ->
     assert insights_body["behavior"]["impulse_buys"] == 0
 
 
+def test_backfill_uses_canonical_category_even_if_another_category_is_renamed_to_same_label(client: TestClient) -> None:
+    auth = _signup_and_get_auth(client, "categorycollision@example.com")
+    headers = _auth_headers(auth["access_token"])
+
+    categories = client.get("/api/v1/categories/?include_hidden=true", headers=headers).json()
+    groceries = next(category for category in categories if category["name"] == "Groceries")
+    bills = next(category for category in categories if category["name"] == "Bills")
+
+    rename_response = client.patch(
+        f"/api/v1/categories/{bills['id']}/settings",
+        json={"display_name": "Groceries"},
+        headers=headers,
+    )
+    assert rename_response.status_code == 200
+
+    create_response = client.post(
+        "/api/v1/transactions/",
+        json={
+            "type": "expense",
+            "amount": "250.00",
+            "title": "Carrefour market",
+            "transaction_date": "2026-05-16",
+        },
+        headers=headers,
+    )
+    assert create_response.status_code == 201
+
+    backfill_response = client.post("/api/v1/transactions/backfill-uncategorized", headers=headers)
+    assert backfill_response.status_code == 200
+    assert backfill_response.json()["updated_count"] == 1
+
+    history_response = client.get("/api/v1/transactions/", headers=headers)
+    assert history_response.status_code == 200
+    item = next(row for row in history_response.json()["items"] if row["title"] == "Carrefour market")
+    assert item["category_id"] == groceries["id"]
+
+
+def test_backfill_skips_hidden_categories(client: TestClient) -> None:
+    auth = _signup_and_get_auth(client, "hiddenbackfill@example.com")
+    headers = _auth_headers(auth["access_token"])
+
+    categories = client.get("/api/v1/categories/?include_hidden=true", headers=headers).json()
+    fuel = next(category for category in categories if category["name"] == "Fuel")
+
+    hide_response = client.patch(
+        f"/api/v1/categories/{fuel['id']}/settings",
+        json={"is_hidden": True},
+        headers=headers,
+    )
+    assert hide_response.status_code == 200
+
+    create_response = client.post(
+        "/api/v1/transactions/",
+        json={
+            "type": "expense",
+            "amount": "500.00",
+            "title": "Paid to SHELL RAWALPINDI PK|Visa xxxx3388",
+            "transaction_date": "2026-05-16",
+        },
+        headers=headers,
+    )
+    assert create_response.status_code == 201
+
+    backfill_response = client.post("/api/v1/transactions/backfill-uncategorized", headers=headers)
+    assert backfill_response.status_code == 200
+    assert backfill_response.json() == {"scanned_count": 1, "updated_count": 0, "status": "completed"}
+
+    history_response = client.get("/api/v1/transactions/", headers=headers)
+    assert history_response.status_code == 200
+    item = next(
+        row for row in history_response.json()["items"] if row["title"] == "Paid to SHELL RAWALPINDI PK|Visa xxxx3388"
+    )
+    assert item["category"] is None
+
+
 def _signup_and_get_auth(client: TestClient, email: str) -> dict[str, str]:
     response = client.post(
         "/api/v1/auth/signup",

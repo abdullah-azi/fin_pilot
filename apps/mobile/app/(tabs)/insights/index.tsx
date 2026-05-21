@@ -2,7 +2,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { router } from 'expo-router';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { authPalette } from '@/constants/theme';
+import { authPalette, screenTopClearance } from '@/constants/theme';
 
 const COLORS = authPalette;
 
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 18,
-    paddingTop: 28,
+    paddingTop: 28 + screenTopClearance,
     paddingBottom: 14,
     borderBottomWidth: 0.5,
     borderBottomColor: '#1E1E1E',

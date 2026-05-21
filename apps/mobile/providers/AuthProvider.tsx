@@ -17,11 +17,13 @@ import {
 } from '@/lib/api/auth';
 import {
   clearStoredSession,
+  persistStoredSession,
   readStoredSession,
   type StoredAuthSession,
   writeStoredSession,
 } from '@/lib/auth-storage';
 import { ApiError } from '@/lib/api/client';
+import { presentAuthNotification } from '@/lib/notifications/auth-notifications';
 
 const ACCESS_TOKEN_REFRESH_BUFFER_MS = 60 * 1000;
 const MIN_REFRESH_DELAY_MS = 5 * 1000;
@@ -37,6 +39,7 @@ type AuthContextValue = {
   logout: () => Promise<void>;
   refreshSession: () => Promise<string | null>;
   signup: (payload: SignupPayload) => Promise<void>;
+  syncUser: (nextUser: AuthUser | null) => Promise<void>;
   user: AuthUser | null;
 };
 
@@ -84,15 +87,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
           if (!refreshedAccessToken) {
             return;
           }
+          await presentAuthNotification('restore', { requestPermission: false });
         } else {
           try {
             const currentUser = await getCurrentUser(storedSession.accessToken);
             setSession({ ...storedSession, user: currentUser });
             setAccessToken(storedSession.accessToken);
             setUser(currentUser);
+            await presentAuthNotification('restore', { requestPermission: false });
           } catch (caughtError) {
             if (caughtError instanceof ApiError && caughtError.status === 401) {
-              await refreshWithStoredSession(storedSession);
+              const refreshedAccessToken = await refreshWithStoredSession(storedSession);
+              if (refreshedAccessToken) {
+                await presentAuthNotification('restore', { requestPermission: false });
+              }
             } else {
               throw caughtError;
             }
@@ -197,6 +205,27 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return activeSession.accessToken;
   }
 
+  async function syncUser(nextUser: AuthUser | null) {
+    if (!nextUser) {
+      setUser(null);
+      return;
+    }
+
+    setUser(nextUser);
+    setSession((current) => {
+      if (!current) {
+        return current;
+      }
+
+      const nextSession = {
+        ...current,
+        user: nextUser,
+      };
+      void persistStoredSession(nextSession);
+      return nextSession;
+    });
+  }
+
   async function login(payload: LoginPayload) {
     setIsSubmitting(true);
     setError(null);
@@ -204,6 +233,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     try {
       const authResponse = await loginRequest(payload);
       await commitAuthResponse(authResponse);
+      await presentAuthNotification('login', { requestPermission: true });
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Login failed.');
       throw caughtError;
@@ -219,6 +249,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     try {
       const authResponse = await signupRequest(payload);
       await commitAuthResponse(authResponse);
+      await presentAuthNotification('signup', { requestPermission: true });
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Signup failed.');
       throw caughtError;
@@ -257,6 +288,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         logout,
         refreshSession,
         signup,
+        syncUser,
         user,
       }}
     >

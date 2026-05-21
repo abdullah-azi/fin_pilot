@@ -15,7 +15,7 @@ import {
   View,
 } from 'react-native';
 
-import { authPalette, typography } from '@/constants/theme';
+import { authPalette, screenTopClearance, typography } from '@/constants/theme';
 import { getCategories, type Category } from '@/lib/api/categories';
 import { ApiError } from '@/lib/api/client';
 import {
@@ -215,6 +215,7 @@ export default function ImportCSVScreen() {
         original_parsed_count: preview.parsed_count,
         rows: editableRows.map((row) => ({
           amount: row.amount,
+          balance: row.balance,
           category_id: row.category_id,
           fingerprint: row.fingerprint,
           note: row.note,
@@ -1097,12 +1098,18 @@ function getCurrencySymbol(currencyCode: string) {
   }
 }
 
-function buildLikelyDuplicateKey(transaction: Pick<Transaction, 'amount' | 'title' | 'transaction_date' | 'type'>) {
+function buildLikelyDuplicateKey(
+  transaction: Pick<Transaction, 'amount' | 'title' | 'transaction_date' | 'type' | 'note'> & {
+    balance?: string | null;
+    raw_preview?: Record<string, string>;
+  },
+) {
   return [
     transaction.type,
     normalizeMoney(transaction.amount),
     normalizeText(transaction.title),
     transaction.transaction_date,
+    normalizeBalanceHint(transaction),
   ].join('|');
 }
 
@@ -1117,6 +1124,41 @@ function normalizeMoney(value: string | number) {
 
 function normalizeText(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function normalizeBalanceHint(
+  transaction: Pick<Transaction, 'note'> & {
+    balance?: string | null;
+    raw_preview?: Record<string, string>;
+  },
+) {
+    const directBalance = transaction.balance?.trim();
+    if (directBalance) {
+      return normalizeMoney(directBalance);
+    }
+
+    const noteBalance = extractBalanceFromNote(transaction.note);
+    if (noteBalance) {
+      return normalizeMoney(noteBalance);
+    }
+
+    const rawPreview = transaction.raw_preview ?? {};
+    for (const [key, value] of Object.entries(rawPreview)) {
+      if (key.trim().toLowerCase().includes('balance') && value.trim()) {
+        return normalizeMoney(value);
+      }
+    }
+
+    return 'no-balance';
+}
+
+function extractBalanceFromNote(note: string | null | undefined) {
+  if (!note) {
+    return null;
+  }
+
+  const match = note.match(/balance:\s*([^\|]+)$/i);
+  return match?.[1]?.trim() ?? null;
 }
 
 function getDuplicateLabel(kind: 'both' | 'existing' | 'file') {
@@ -1142,7 +1184,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 18,
-    paddingTop: 28,
+    paddingTop: 28 + screenTopClearance,
     paddingBottom: 14,
     borderBottomWidth: 0.5,
     borderBottomColor: '#1E1E1E',

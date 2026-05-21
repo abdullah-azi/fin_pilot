@@ -21,9 +21,10 @@ import {
 import { Buffer } from 'buffer';
 
 import type { AuthUser } from '@/lib/api/auth';
-import { authPalette, typography } from '@/constants/theme';
+import { authPalette, screenTopClearance, typography } from '@/constants/theme';
 import { ApiError } from '@/lib/api/client';
 import { fetchReportExport } from '@/lib/api/insights';
+import { sendTestNotification as sendTestNotificationRequest } from '@/lib/api/notifications';
 import { listSavingsGoals } from '@/lib/api/savings-goals';
 import {
   backfillUncategorizedTransactions as backfillUncategorizedTransactionsRequest,
@@ -41,6 +42,7 @@ import {
   uploadCurrentUserProfileImage,
 } from '@/lib/api/users';
 import { useAuth } from '@/providers/AuthProvider';
+import { useNotifications } from '@/providers/NotificationProvider';
 
 const COLORS = authPalette;
 const COUNTRY_TO_CURRENCY: Record<string, string> = {
@@ -69,7 +71,8 @@ type PreferenceToggleKey =
   | 'weekly_digest_enabled';
 
 export default function ProfileScreen() {
-  const { getValidAccessToken, isSubmitting, logout, user } = useAuth();
+  const { getValidAccessToken, isSubmitting, logout, syncUser, user } = useAuth();
+  const { expoPushToken, permissionStatus, refreshPushRegistration } = useNotifications();
   const isFocused = useIsFocused();
   const [profileUser, setProfileUser] = useState<AuthUser | null>(user);
   const [stats, setStats] = useState<ProfileStats>({
@@ -96,6 +99,7 @@ export default function ProfileScreen() {
   const [isBackfillingTransactions, setIsBackfillingTransactions] = useState(false);
   const [isDeletingTransactions, setIsDeletingTransactions] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [isSendingTestNotification, setIsSendingTestNotification] = useState(false);
   const [personalInfoDraft, setPersonalInfoDraft] = useState({
     email: '',
     full_name: '',
@@ -174,6 +178,7 @@ export default function ProfileScreen() {
       ]);
 
       setProfileUser(userResult);
+      await syncUser(userResult);
       setStats({
         activeGoals: goalsResult.filter((goal) => goal.status === 'active').length,
         streakDays: calculateTransactionStreakDays(transactionsResult.items),
@@ -216,6 +221,12 @@ export default function ProfileScreen() {
         preferences: buildPreferencePatch(field, nextValue),
       });
       setProfileUser(updated);
+      await syncUser(updated);
+      if (field === 'notifications_enabled') {
+        if (nextValue) {
+          await refreshPushRegistration(true);
+        }
+      }
     } catch (caughtError) {
       setProfileUser(previousUser);
       setError(caughtError instanceof Error ? caughtError.message : 'Could not update this preference.');
@@ -240,6 +251,7 @@ export default function ProfileScreen() {
         phone: personalInfoDraft.phone.trim() || null,
       });
       setProfileUser(updated);
+      await syncUser(updated);
       setIsEditingPersonalInfo(false);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Could not update personal info.');
@@ -266,6 +278,7 @@ export default function ProfileScreen() {
         },
       });
       setProfileUser(updated);
+      await syncUser(updated);
       setIsEditingCurrencyRegion(false);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Could not update currency and region.');
@@ -290,6 +303,7 @@ export default function ProfileScreen() {
         },
       });
       setProfileUser(updated);
+      await syncUser(updated);
       setIsEditingMonthStartDay(false);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Could not update month start day.');
@@ -314,6 +328,7 @@ export default function ProfileScreen() {
         },
       });
       setProfileUser(updated);
+      await syncUser(updated);
       setIsEditingAppearance(false);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Could not update appearance.');
@@ -338,6 +353,7 @@ export default function ProfileScreen() {
         },
       });
       setProfileUser(updated);
+      await syncUser(updated);
       setIsEditingLanguage(false);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Could not update language.');
@@ -563,6 +579,44 @@ export default function ProfileScreen() {
     }
   }
 
+  async function handleSendTestNotification() {
+    setIsSendingTestNotification(true);
+    setError(null);
+
+    try {
+      const accessToken = await getValidAccessToken();
+      if (!accessToken) {
+        throw new Error('Your session expired. Please log in again.');
+      }
+
+      const registered = await refreshPushRegistration(true);
+      if (!registered) {
+        throw new Error(
+          'Push registration is not available yet. On Android, remote push notifications require a development build, not Expo Go.',
+        );
+      }
+
+      const result = await sendTestNotificationRequest(accessToken, {
+        title: 'FinPilot test notification',
+        body: 'If you see this on your phone, the push service is working.',
+        data: { source: 'profile-settings' },
+      });
+      Alert.alert(
+        'Test sent',
+        result.delivered_count > 0
+          ? 'FinPilot sent a test push to your registered device.'
+          : 'FinPilot tried to send a test push, but nothing was delivered.',
+      );
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error ? caughtError.message : 'Could not send a test notification.';
+      setError(message);
+      Alert.alert('Notification test failed', message);
+    } finally {
+      setIsSendingTestNotification(false);
+    }
+  }
+
   function openPersonalInfoEditor() {
     if (!profileUser) {
       return;
@@ -653,14 +707,17 @@ export default function ProfileScreen() {
         name: asset.fileName ?? `profile-${Date.now()}.jpg`,
         uri: asset.uri,
       });
-      setProfileUser((current) =>
-        current
-          ? {
-              ...current,
-              profile_image_url: uploaded.profile_image_url,
-            }
-          : current,
-      );
+      setProfileUser((current) => {
+        if (!current) {
+          return current;
+        }
+        const nextUser = {
+          ...current,
+          profile_image_url: uploaded.profile_image_url,
+        };
+        void syncUser(nextUser);
+        return nextUser;
+      });
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Could not upload profile image.');
     } finally {
@@ -678,14 +735,17 @@ export default function ProfileScreen() {
 
       setIsUploadingProfileImage(true);
       await deleteCurrentUserProfileImage(accessToken);
-      setProfileUser((current) =>
-        current
-          ? {
-              ...current,
-              profile_image_url: null,
-            }
-          : current,
-      );
+      setProfileUser((current) => {
+        if (!current) {
+          return current;
+        }
+        const nextUser = {
+          ...current,
+          profile_image_url: null,
+        };
+        void syncUser(nextUser);
+        return nextUser;
+      });
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Could not remove profile image.');
     } finally {
@@ -886,6 +946,19 @@ export default function ProfileScreen() {
                   onPress={() => void handlePreferenceToggle('promotions_enabled', !promotionsEnabled)}
                 />
               }
+            />
+            <SettingRow
+              background="#131520"
+              icon="paper-plane"
+              iconColor="#6366F1"
+              onPress={() => void handleSendTestNotification()}
+              rightValue={isSendingTestNotification ? 'SENDING' : expoPushToken ? 'Ready' : permissionStatus ?? 'Off'}
+              subtitle={
+                expoPushToken
+                  ? 'Send a real push notification to this phone'
+                  : 'Register this device and verify delivery'
+              }
+              title="Send test notification"
             />
           </View>
 
@@ -1576,7 +1649,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#161616',
     borderBottomWidth: 0.5,
     borderBottomColor: '#1E1E1E',
-    paddingTop: 28,
+    paddingTop: 28 + screenTopClearance,
     paddingHorizontal: 20,
     paddingBottom: 18,
     alignItems: 'center',

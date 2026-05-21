@@ -229,7 +229,7 @@ def delete_all_transactions(db: Session, user_id: UUID) -> int:
 
 
 def backfill_uncategorized_transactions(db: Session, user_id: UUID) -> TransactionBackfillResult:
-    categories = list_categories(db, user_id, include_hidden=True)
+    categories = list_categories(db, user_id, include_hidden=False)
     category_lookup = build_category_lookup(categories)
 
     transactions = db.scalars(

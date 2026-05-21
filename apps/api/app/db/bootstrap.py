@@ -11,6 +11,7 @@ def create_schema(bind_engine: Engine | None = None) -> None:
     Base.metadata.create_all(bind=active_engine)
     _sync_transaction_frequency_schema(active_engine)
     _sync_settings_profile_schema(active_engine)
+    _sync_notification_schema(active_engine)
 
 
 def _sync_transaction_frequency_schema(bind_engine: Engine) -> None:
@@ -70,6 +71,14 @@ def _sync_settings_profile_schema(bind_engine: Engine) -> None:
                 """
                 ALTER TABLE users
                 ADD COLUMN IF NOT EXISTS profile_image_url VARCHAR(500)
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS profile_image_storage_key VARCHAR(500)
                 """
             )
         )
@@ -142,6 +151,26 @@ def _sync_settings_profile_schema(bind_engine: Engine) -> None:
                 """
                 ALTER TABLE user_preferences
                 ADD COLUMN IF NOT EXISTS language VARCHAR(20) NOT NULL DEFAULT 'English'
+                """
+            )
+        )
+
+
+def _sync_notification_schema(bind_engine: Engine) -> None:
+    with bind_engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                ALTER TABLE notification_devices
+                ADD COLUMN IF NOT EXISTS last_registered_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                ALTER TABLE notification_devices
+                ADD COLUMN IF NOT EXISTS last_notified_at TIMESTAMPTZ
                 """
             )
         )

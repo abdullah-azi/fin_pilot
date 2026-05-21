@@ -317,6 +317,60 @@ def test_import_preview_maps_real_statement_titles_to_new_categories(client: Tes
     assert rows_by_title["Paid to CHEEZIOUS RAWALPINDI PK|Visa xxxx3388"]["category_name"] == "Dining / Fast Food"
 
 
+def test_confirm_import_uses_balance_to_avoid_false_duplicates(client: TestClient) -> None:
+    auth = _signup_and_get_auth(client, "balancededupe@example.com")
+    headers = _auth_headers(auth["access_token"])
+
+    csv_content = "\n".join(
+        [
+            "TIMESTAMP,TYPE,DESCRIPTION,AMOUNT,BALANCE",
+            '01 Jan 2026 2:34 AM,Peer to Peer,"Money sent to MIR YOUSUF AZEEM",-1000,19263.55',
+            '01 Jan 2026 5:34 PM,Peer to Peer,"Money sent to MIR YOUSUF AZEEM",-1000,18263.55',
+        ]
+    )
+
+    preview_response = client.post(
+        "/api/v1/imports/csv/preview-text",
+        json={
+            "source_name": "same-day-same-amount.csv",
+            "content": csv_content,
+        },
+        headers=headers,
+    )
+    assert preview_response.status_code == 200
+    preview_body = preview_response.json()
+    assert preview_body["parsed_count"] == 2
+
+    confirm_payload = {
+        "original_parsed_count": preview_body["parsed_count"],
+        "source_name": preview_body["source_name"],
+        "rows": [
+            {
+                "row_index": row["row_index"],
+                "transaction_date": row["transaction_date"],
+                "title": row["title"],
+                "amount": row["amount"],
+                "balance": row["balance"],
+                "type": row["type"],
+                "note": row["note"],
+                "category_id": row["category_id"],
+                "fingerprint": row["fingerprint"],
+            }
+            for row in preview_body["rows"]
+        ],
+    }
+
+    confirm_response = client.post(
+        "/api/v1/imports/csv/confirm",
+        json=confirm_payload,
+        headers=headers,
+    )
+    assert confirm_response.status_code == 201
+    confirm_body = confirm_response.json()
+    assert confirm_body["imported_count"] == 2
+    assert confirm_body["skipped_duplicate_count"] == 0
+
+
 def _signup_and_get_auth(client: TestClient, email: str) -> dict[str, str]:
     response = client.post(
         "/api/v1/auth/signup",

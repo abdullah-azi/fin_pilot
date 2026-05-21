@@ -50,3 +50,17 @@ class AIContextType(StrEnum):
     SAVINGS_GOAL = "savings_goal"
     REPORT_SUMMARY = "report_summary"
     GENERAL_ADVICE = "general_advice"
+
+
+class NotificationPlatform(StrEnum):
+    ANDROID = "android"
+    IOS = "ios"
+    WEB = "web"
+    UNKNOWN = "unknown"
+
+
+class NotificationChannel(StrEnum):
+    TEST = "test"
+    WEEKLY_DIGEST = "weekly_digest"
+    SAVINGS_REMINDER = "savings_reminder"
+    PROMOTION = "promotion"

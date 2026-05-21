@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 
-import { authPalette, typography } from '@/constants/theme';
+import { authPalette, screenTopClearance, typography } from '@/constants/theme';
 import { getCategories, type Category } from '@/lib/api/categories';
 import { ApiError } from '@/lib/api/client';
 import {
@@ -897,7 +897,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 14,
+    paddingTop: 14 + screenTopClearance,
   },
   sheetTitle: {
     color: '#F0F0F0',

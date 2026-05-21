@@ -19,6 +19,8 @@ class CategoryLike(Protocol):
     effective_name: str
     display_name: str | None
     type: CategoryType
+    is_default: bool
+    is_hidden: bool
 
 
 CATEGORY_RULES: tuple[CategoryRule, ...] = (
@@ -49,9 +51,13 @@ CATEGORY_RULES: tuple[CategoryRule, ...] = (
 def build_category_lookup(categories: Iterable[CategoryLike]) -> dict[str, CategoryLike]:
     lookup: dict[str, CategoryLike] = {}
     for category in categories:
-        for alias in (category.name, category.effective_name, category.display_name or None):
-            if alias:
-                lookup[alias.strip().lower()] = category
+        if category.is_hidden:
+            continue
+
+        key = category.name.strip().lower()
+        current = lookup.get(key)
+        if current is None or (category.is_default and not current.is_default):
+            lookup[key] = category
     return lookup
 
 

@@ -29,3 +29,14 @@ def test_resend_enabled_requires_api_key_and_sender() -> None:
 
     assert disabled.resend_enabled is False
     assert enabled.resend_enabled is True
+
+
+def test_database_urls_normalize_to_psycopg_driver() -> None:
+    settings_from_postgres = Settings(
+        _env_file=None,
+        database_url="postgres://user:pass@db.example.com:5432/finpilot",
+        test_database_url="postgresql://user:pass@db.example.com:5432/finpilot_test",
+    )
+
+    assert settings_from_postgres.database_url == "postgresql+psycopg://user:pass@db.example.com:5432/finpilot"
+    assert settings_from_postgres.test_database_url == "postgresql+psycopg://user:pass@db.example.com:5432/finpilot_test"

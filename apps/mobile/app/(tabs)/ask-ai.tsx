@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 
-import { authPalette } from '@/constants/theme';
+import { authPalette, screenTopClearance } from '@/constants/theme';
 import {
   generalChat,
   purchaseCheck,
@@ -887,7 +887,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingTop: 28,
+    paddingTop: 28 + screenTopClearance,
     paddingHorizontal: 18,
     paddingBottom: 12,
     borderBottomWidth: 0.5,

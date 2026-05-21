@@ -15,6 +15,7 @@ from app.db.session import SessionLocal
 from app.models.user import User
 from app.models.user_session import UserSession
 from app.services.ai.service import AIService
+from app.services.notifications import NotificationService
 
 
 def get_db() -> Generator[Session, None, None]:
@@ -101,3 +102,7 @@ def get_current_user(auth: AuthContext = Depends(get_current_auth_context)) -> U
 
 def get_ai_service() -> AIService:
     return AIService()
+
+
+def get_notification_service() -> NotificationService:
+    return NotificationService()

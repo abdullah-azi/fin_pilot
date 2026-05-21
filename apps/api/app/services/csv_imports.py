@@ -62,6 +62,7 @@ class ParsedImportRow:
     transaction_date: date
     title: str
     amount: Decimal
+    balance: Decimal | None
     transaction_type: TransactionType
     note: str | None
     category_id: UUID | None
@@ -164,6 +165,7 @@ def build_preview_response(result: PreviewCSVResult) -> CSVImportPreviewResponse
                 transaction_date=row.transaction_date,
                 title=row.title,
                 amount=row.amount,
+                balance=row.balance,
                 type=row.transaction_type,
                 note=row.note,
                 category_id=row.category_id,
@@ -219,11 +221,12 @@ def confirm_csv_import(
             transaction.type,
             transaction.amount,
             transaction.title,
+            _extract_balance_from_note(transaction.note),
         )
         for transaction in existing_rows
     }
 
-    seen_payload_keys: set[tuple[date, str, str, str]] = set()
+    seen_payload_keys: set[tuple[date, str, str, str, str | None]] = set()
     imported_transaction_ids: list[UUID] = []
     skipped_duplicates: list[int] = []
 
@@ -233,6 +236,7 @@ def confirm_csv_import(
             row.type,
             row.amount.quantize(MONEY_QUANTUM),
             row.title,
+            row.balance.quantize(MONEY_QUANTUM) if row.balance is not None else None,
         )
         if duplicate_key in existing_keys or duplicate_key in seen_payload_keys:
             skipped_duplicates.append(row.row_index)
@@ -324,6 +328,7 @@ def _parse_csv_row(
     transaction_date = _extract_date(raw_row, normalized_header_map)
     title = _extract_title(raw_row, normalized_header_map)
     amount, transaction_type = _extract_amount_and_type(raw_row, normalized_header_map)
+    balance = _extract_balance(raw_row, normalized_header_map)
     note = _extract_note(raw_row, normalized_header_map)
     category_id, category_name = infer_category_match(
         title=title,
@@ -343,11 +348,12 @@ def _parse_csv_row(
         transaction_date=transaction_date,
         title=title,
         amount=amount,
+        balance=balance,
         transaction_type=transaction_type,
         note=note,
         category_id=category_id,
         category_name=category_name,
-        fingerprint=_row_fingerprint(transaction_date, transaction_type, amount, title),
+        fingerprint=_row_fingerprint(transaction_date, transaction_type, amount, title, balance),
         raw_preview=raw_preview,
     )
 
@@ -603,6 +609,17 @@ def _extract_note(raw_row: dict[str, str | None], normalized_header_map: dict[st
     return " | ".join(parts)[:255] if parts else None
 
 
+def _extract_balance(raw_row: dict[str, str | None], normalized_header_map: dict[str, str]) -> Decimal | None:
+    balance_value = _find_value(raw_row, normalized_header_map, BALANCE_HEADERS)
+    if not balance_value:
+        return None
+
+    balance = _parse_decimal(balance_value)
+    if balance is None:
+        return None
+    return balance.quantize(MONEY_QUANTUM)
+
+
 def _parse_date(value: str) -> date | None:
     normalized = value.strip()
 
@@ -722,8 +739,13 @@ def _row_fingerprint(
     transaction_type: TransactionType,
     amount: Decimal,
     title: str,
+    balance: Decimal | None = None,
 ) -> str:
-    raw = f"{transaction_date.isoformat()}|{transaction_type.value}|{amount.quantize(MONEY_QUANTUM)}|{title.strip().lower()}"
+    balance_part = f"|{balance.quantize(MONEY_QUANTUM)}" if balance is not None else ""
+    raw = (
+        f"{transaction_date.isoformat()}|{transaction_type.value}|"
+        f"{amount.quantize(MONEY_QUANTUM)}|{title.strip().lower()}{balance_part}"
+    )
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
@@ -732,10 +754,23 @@ def _build_duplicate_key(
     transaction_type: TransactionType,
     amount: Decimal,
     title: str,
-) -> tuple[date, str, str, str]:
+    balance: Decimal | None = None,
+) -> tuple[date, str, str, str, str | None]:
     return (
         transaction_date,
         transaction_type.value,
         f"{amount.quantize(MONEY_QUANTUM)}",
         title.strip().lower(),
+        f"{balance.quantize(MONEY_QUANTUM)}" if balance is not None else None,
     )
+
+
+def _extract_balance_from_note(note: str | None) -> Decimal | None:
+    if not note:
+        return None
+
+    match = re.search(r"balance:\s*([^\|]+)$", note, flags=re.IGNORECASE)
+    if not match:
+        return None
+
+    return _parse_decimal(match.group(1))

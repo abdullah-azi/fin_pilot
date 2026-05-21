@@ -12,6 +12,7 @@ class CSVImportPreviewRow(BaseModel):
     transaction_date: date
     title: str
     amount: Decimal
+    balance: Decimal | None = None
     type: TransactionType
     note: str | None = None
     category_id: UUID | None = None
@@ -50,6 +51,7 @@ class CSVImportConfirmRow(BaseModel):
     transaction_date: date
     title: str = Field(min_length=1, max_length=120)
     amount: Decimal = Field(gt=0)
+    balance: Decimal | None = None
     type: TransactionType
     note: str | None = None
     category_id: UUID | None = None

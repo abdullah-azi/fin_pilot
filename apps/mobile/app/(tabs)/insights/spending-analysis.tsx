@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
-import { authPalette, typography } from '@/constants/theme';
+import { authPalette, screenTopClearance, typography } from '@/constants/theme';
 import { ApiError } from '@/lib/api/client';
 import {
   getSpendingAnalysis,
@@ -633,7 +633,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 18,
-    paddingTop: 28,
+    paddingTop: 28 + screenTopClearance,
     paddingBottom: 12,
     borderBottomWidth: 0.5,
     borderBottomColor: '#1E1E1E',
