@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,19 +13,38 @@ from app.models import register_models
 from app.services.storage import get_local_storage_root, get_storage_backend
 
 
+def run_alembic_migrations() -> None:
+    from alembic import command
+    from alembic.config import Config
+
+    alembic_ini_path = Path(__file__).resolve().parents[1] / "alembic.ini"
+    config = Config(str(alembic_ini_path))
+    command.upgrade(config, "head")
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     get_storage_backend().ensure_ready()
-    if settings.app_env != "production":
-        try:
+    try:
+        if settings.app_env == "production":
+            if settings.run_migrations_on_startup:
+                run_alembic_migrations()
+        else:
             create_schema()
-        except OperationalError as exc:
+    except OperationalError as exc:
+        raise RuntimeError(
+            "Database unavailable during startup. "
+            f"Could not connect to {settings.database_url!r} within "
+            f"{settings.database_connect_timeout_seconds} seconds. "
+            "Start Postgres or correct DATABASE_URL, then retry."
+        ) from exc
+    except Exception as exc:
+        if settings.app_env == "production" and settings.run_migrations_on_startup:
             raise RuntimeError(
-                "Database unavailable during startup. "
-                f"Could not connect to {settings.database_url!r} within "
-                f"{settings.database_connect_timeout_seconds} seconds. "
-                "Start Postgres or correct DATABASE_URL, then retry."
+                "Database migration failed during startup. "
+                "Check Alembic configuration, DATABASE_URL, and migration logs."
             ) from exc
+        raise
     yield
 
 

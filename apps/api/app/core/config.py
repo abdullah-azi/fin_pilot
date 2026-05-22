@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     expo_push_base_url: str = "https://exp.host/--/api/v2/push/send"
     expo_push_timeout_seconds: float = 15.0
     database_connect_timeout_seconds: int = 5
+    run_migrations_on_startup: bool = True
     grok_api_key: str = ""
     deepseek_api_key: str = ""
     huggingface_api_key: str = ""
