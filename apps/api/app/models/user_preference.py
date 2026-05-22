@@ -1,12 +1,12 @@
 import uuid
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Enum, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Boolean, ForeignKey, Integer, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.models.enums import AIAdviceTone, RiskStyle
+from app.models.enums import AIAdviceTone, RiskStyle, db_enum
 from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 
@@ -21,9 +21,9 @@ class UserPreference(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     monthly_income_expected: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
     monthly_savings_target: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
-    risk_style: Mapped[RiskStyle | None] = mapped_column(Enum(RiskStyle), nullable=True)
+    risk_style: Mapped[RiskStyle | None] = mapped_column(db_enum(RiskStyle, name="riskstyle"), nullable=True)
     preferred_ai_tone: Mapped[AIAdviceTone | None] = mapped_column(
-        Enum(AIAdviceTone),
+        db_enum(AIAdviceTone, name="aiadvicetone"),
         nullable=True,
     )
     month_start_day: Mapped[int] = mapped_column(Integer, default=1, nullable=False)

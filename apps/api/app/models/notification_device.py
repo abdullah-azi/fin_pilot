@@ -1,12 +1,12 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.models.enums import NotificationPlatform
+from app.models.enums import NotificationPlatform, db_enum
 from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 
@@ -24,7 +24,7 @@ class NotificationDevice(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     expo_push_token: Mapped[str] = mapped_column(String(255), nullable=False)
     platform: Mapped[NotificationPlatform] = mapped_column(
-        Enum(NotificationPlatform),
+        db_enum(NotificationPlatform, name="notificationplatform"),
         default=NotificationPlatform.UNKNOWN,
         nullable=False,
     )

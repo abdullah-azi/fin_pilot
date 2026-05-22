@@ -1,11 +1,11 @@
 import uuid
 
-from sqlalchemy import Boolean, Enum, ForeignKey, String
+from sqlalchemy import Boolean, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.models.enums import CategoryType
+from app.models.enums import CategoryType, db_enum
 from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 
@@ -19,7 +19,7 @@ class Category(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         index=True,
     )
     name: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
-    type: Mapped[CategoryType] = mapped_column(Enum(CategoryType), nullable=False)
+    type: Mapped[CategoryType] = mapped_column(db_enum(CategoryType, name="categorytype"), nullable=False)
     color: Mapped[str | None] = mapped_column(String(20), nullable=True)
     icon: Mapped[str | None] = mapped_column(String(100), nullable=True)
     is_default: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

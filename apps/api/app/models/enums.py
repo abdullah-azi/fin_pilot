@@ -1,5 +1,7 @@
 from enum import StrEnum
 
+from sqlalchemy import Enum as SQLAlchemyEnum
+
 
 class TransactionType(StrEnum):
     INCOME = "income"
@@ -64,3 +66,11 @@ class NotificationChannel(StrEnum):
     WEEKLY_DIGEST = "weekly_digest"
     SAVINGS_REMINDER = "savings_reminder"
     PROMOTION = "promotion"
+
+
+def db_enum(enum_cls: type[StrEnum], *, name: str | None = None) -> SQLAlchemyEnum:
+    return SQLAlchemyEnum(
+        enum_cls,
+        name=name,
+        values_callable=lambda members: [member.value for member in members],
+    )

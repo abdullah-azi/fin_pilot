@@ -2,12 +2,12 @@ import uuid
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import CheckConstraint, Date, Enum, ForeignKey, Numeric, String, Text
+from sqlalchemy import CheckConstraint, Date, ForeignKey, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.models.enums import GoalPriority, SavingsGoalStatus
+from app.models.enums import GoalPriority, SavingsGoalStatus, db_enum
 from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 
@@ -30,15 +30,14 @@ class SavingsGoal(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     current_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)
     target_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     priority: Mapped[GoalPriority] = mapped_column(
-        Enum(GoalPriority),
+        db_enum(GoalPriority, name="goalpriority"),
         default=GoalPriority.MEDIUM,
         nullable=False,
     )
     status: Mapped[SavingsGoalStatus] = mapped_column(
-        Enum(SavingsGoalStatus),
+        db_enum(SavingsGoalStatus, name="savingsgoalstatus"),
         default=SavingsGoalStatus.ACTIVE,
         nullable=False,
     )
 
     user = relationship("User", back_populates="savings_goals")
-

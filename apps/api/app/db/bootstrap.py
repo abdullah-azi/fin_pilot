@@ -3,15 +3,70 @@ from sqlalchemy import Engine, text
 from app.db.base import Base
 from app.db.session import engine
 from app.models import register_models
+from app.models.enums import (
+    AIAdviceTone,
+    AIContextType,
+    CategoryType,
+    GoalPriority,
+    NotificationChannel,
+    NotificationPlatform,
+    RiskStyle,
+    SavingsGoalStatus,
+    TransactionFrequency,
+    TransactionType,
+)
+
+
+ENUM_VALUE_SYNC: dict[str, list[str]] = {
+    "aicontexttype": [item.value for item in AIContextType],
+    "aiadvicetone": [item.value for item in AIAdviceTone],
+    "categorytype": [item.value for item in CategoryType],
+    "goalpriority": [item.value for item in GoalPriority],
+    "notificationchannel": [item.value for item in NotificationChannel],
+    "notificationplatform": [item.value for item in NotificationPlatform],
+    "riskstyle": [item.value for item in RiskStyle],
+    "savingsgoalstatus": [item.value for item in SavingsGoalStatus],
+    "transaction_frequency": [item.value for item in TransactionFrequency],
+    "transactiontype": [item.value for item in TransactionType],
+}
 
 
 def create_schema(bind_engine: Engine | None = None) -> None:
     active_engine = bind_engine or engine
     register_models()
     Base.metadata.create_all(bind=active_engine)
+    _sync_enum_values(active_engine)
     _sync_transaction_frequency_schema(active_engine)
     _sync_settings_profile_schema(active_engine)
     _sync_notification_schema(active_engine)
+
+
+def _sync_enum_values(bind_engine: Engine) -> None:
+    with bind_engine.begin() as connection:
+        for type_name, expected_values in ENUM_VALUE_SYNC.items():
+            existing_values = connection.execute(
+                text(
+                    """
+                    SELECT enumlabel
+                    FROM pg_enum
+                    JOIN pg_type ON pg_enum.enumtypid = pg_type.oid
+                    WHERE pg_type.typname = :type_name
+                    ORDER BY enumsortorder
+                    """
+                ),
+                {"type_name": type_name},
+            ).scalars().all()
+            if not existing_values:
+                continue
+
+            for expected_value in expected_values:
+                uppercase_value = expected_value.upper()
+                if uppercase_value in existing_values and expected_value not in existing_values:
+                    connection.execute(
+                        text(
+                            f"ALTER TYPE {type_name} RENAME VALUE '{uppercase_value}' TO '{expected_value}'"
+                        )
+                    )
 
 
 def _sync_transaction_frequency_schema(bind_engine: Engine) -> None:

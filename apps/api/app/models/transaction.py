@@ -2,12 +2,12 @@ import uuid
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import CheckConstraint, Date, Enum, ForeignKey, Numeric, String, Text
+from sqlalchemy import CheckConstraint, Date, ForeignKey, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.models.enums import TransactionFrequency, TransactionType
+from app.models.enums import TransactionFrequency, TransactionType, db_enum
 from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 
@@ -23,10 +23,10 @@ class Transaction(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         index=True,
         nullable=False,
     )
-    type: Mapped[TransactionType] = mapped_column(Enum(TransactionType), nullable=False)
+    type: Mapped[TransactionType] = mapped_column(db_enum(TransactionType, name="transactiontype"), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     income_frequency: Mapped[TransactionFrequency | None] = mapped_column(
-        Enum(TransactionFrequency, name="transaction_frequency"),
+        db_enum(TransactionFrequency, name="transaction_frequency"),
         nullable=True,
     )
     hours_per_day: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
