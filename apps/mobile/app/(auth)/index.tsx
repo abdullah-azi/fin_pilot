@@ -7,6 +7,7 @@ import {
   Animated,
   Easing,
   Modal,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -820,30 +821,41 @@ function Field({
   label: string;
   onValueChange?: (value: string) => void;
 }) {
-  const [value, setValue] = useState(initialValue);
+  const [hasValue, setHasValue] = useState(Boolean(initialValue));
+  const [inputKey, setInputKey] = useState(0);
 
   useEffect(() => {
-    setValue(initialValue);
+    setHasValue(Boolean(initialValue));
+    setInputKey((current) => current + 1);
   }, [initialValue]);
 
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <View style={[styles.fieldInput, value ? styles.fieldInputActive : null]}>
+      <View style={[styles.fieldInput, hasValue ? styles.fieldInputActive : null]}>
         <TextInput
           autoComplete="off"
-          importantForAutofill="no"
+          disableFullscreenUI
+          importantForAutofill="noExcludeDescendants"
+          key={inputKey}
+          keyboardAppearance="dark"
           placeholderTextColor={AUTH_COLORS.textSoft}
+          selectTextOnFocus={false}
           style={styles.fieldValue}
-          textContentType="none"
-          value={value}
+          textContentType={Platform.OS === 'ios' ? 'none' : undefined}
+          underlineColorAndroid="transparent"
+          defaultValue={initialValue}
           onChangeText={(nextValue) => {
-            setValue(nextValue);
+            setHasValue(nextValue.trim().length > 0);
             onValueChange?.(nextValue);
           }}
           {...inputProps}
         />
-        <FontAwesome color={value ? AUTH_COLORS.violetBright : AUTH_COLORS.textSoft} name={icon} size={14} />
+        <FontAwesome
+          color={hasValue ? AUTH_COLORS.violetBright : AUTH_COLORS.textSoft}
+          name={icon}
+          size={14}
+        />
       </View>
     </View>
   );
