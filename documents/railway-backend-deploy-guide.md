@@ -107,8 +107,19 @@ python -m pip install --upgrade pip && python -m pip install -r requirements.txt
 Use:
 
 ```bash
-uvicorn app.main:app --host 0.0.0.0 --port $PORT
+sh ./railway-start.sh
 ```
+
+Why this is the recommended start command:
+
+- it runs `alembic -c alembic.ini upgrade head` inside Railway before the app starts
+- it works with the **private/internal** Railway Postgres hostname
+- it avoids the exact local-machine DNS failure you hit with `postgres.railway.internal`
+
+Files involved:
+
+- [apps/api/railway-start.sh](</d:/Documents/My Projects/FinPilot/apps/api/railway-start.sh>)
+- [apps/api/Procfile](</d:/Documents/My Projects/FinPilot/apps/api/Procfile>)
 
 ### Service 3: Object storage
 
@@ -154,6 +165,13 @@ For FinPilot on Railway:
   - local admin tools
   - manual inspection from your laptop
   - external scripts that are not running inside Railway
+
+Important:
+
+- if you run Alembic from your own Windows machine while `DATABASE_URL` points at the Railway private host, it will fail with host resolution errors such as `postgres.railway.internal`
+- that is expected
+- the private hostname only resolves inside Railway's private network
+- that is why the backend start command above runs Alembic inside Railway before boot
 
 For production, you do **not** need:
 
@@ -277,6 +295,8 @@ Production order should be:
 3. Alembic migration is run
 4. backend starts
 
+For Railway, the cleanest way to satisfy steps 3 and 4 is to let the start command run Alembic first and Uvicorn second.
+
 ## Migrations step
 
 This backend now uses Alembic.
@@ -294,6 +314,15 @@ You can do this from:
 1. Railway shell / command execution
 2. Railway CLI
 3. a temporary one-off deploy command
+
+Recommended Railway path for FinPilot:
+
+1. set the backend start command to `sh ./railway-start.sh`
+2. deploy
+3. let Railway run Alembic inside the backend container
+4. once startup succeeds, the schema is in place
+
+Only use the public Postgres URL if you intentionally want to run Alembic from your own machine.
 
 Do **not** treat `python -m app.db.bootstrap` as the production migration path anymore.
 
@@ -499,6 +528,7 @@ Before calling the deployment "done", confirm:
 
 - `APP_ENV=production`
 - `DATABASE_URL` is from Railway Postgres
+- the backend start command is `sh ./railway-start.sh`
 - Alembic migration ran
 - `EXPO_PUBLIC_API_URL` points to Railway
 - storage is **not** relying on local filesystem for real production use
@@ -514,8 +544,9 @@ Use this order exactly:
 3. create Railway backend service from `apps/api`
 4. set backend environment variables
 5. set `DATABASE_URL` in backend service using the **private** Postgres connection
-6. run `alembic -c alembic.ini upgrade head`
-7. verify `health/ready`
-8. update mobile API URL
-9. build/install APK
-10. test end to end on device
+6. set backend start command to `sh ./railway-start.sh`
+7. deploy and let Railway run Alembic on startup
+8. verify `health/ready`
+9. update mobile API URL
+10. build/install APK
+11. test end to end on device
