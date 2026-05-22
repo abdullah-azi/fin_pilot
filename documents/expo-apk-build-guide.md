@@ -88,7 +88,56 @@ This links the app to Expo/EAS if needed.
 
 Even though `eas.json` already exists in the repo, the project linkage still matters.
 
-## 5. Set the backend URL
+## 5. Set the backend URL with EAS environment variables
+
+This repo is now configured to use **EAS environments**, not hardcoded build-profile env values.
+
+Current profile mapping in [eas.json](</d:/Documents/My Projects/FinPilot/apps/mobile/eas.json>):
+
+- `development` -> EAS environment `development`
+- `preview` -> EAS environment `preview`
+- `production` -> EAS environment `production`
+
+For FinPilot, create `EXPO_PUBLIC_API_URL` on EAS for each environment you care about.
+
+Recommended command for the APK environment:
+
+```powershell
+cd "D:\Documents\My Projects\FinPilot\apps\mobile"
+eas env:create --name EXPO_PUBLIC_API_URL --value https://finpilot-production-2a2e.up.railway.app/api/v1 --environment preview --visibility plaintext
+```
+
+If you also want the same backend URL for production:
+
+```powershell
+eas env:create --name EXPO_PUBLIC_API_URL --value https://finpilot-production-2a2e.up.railway.app/api/v1 --environment production --visibility plaintext
+```
+
+If the variable already exists, update it in the Expo dashboard or remove/recreate it.
+
+Why `plaintext`:
+
+- this is a public API URL
+- it is not a secret
+- `EXPO_PUBLIC_*` values are intended to end up in the client app
+
+You can verify variables with:
+
+```powershell
+eas env:list
+```
+
+### Optional local sync
+
+If you want your local machine to use the same values:
+
+```powershell
+eas env:pull --environment preview
+```
+
+That can update your local `.env` for development convenience, but the important thing for remote EAS builds is that the variable exists on EAS itself.
+
+## 6. Local `.env` reminder
 
 Update:
 
@@ -108,7 +157,9 @@ Do not leave it as:
 
 Those are only for local development and emulator testing.
 
-## 6. Understand the current EAS profiles
+If your EAS environment is configured correctly, the remote build does not depend on your local `.env` file.
+
+## 7. Understand the current EAS profiles
 
 Current profiles in [eas.json](</d:/Documents/My Projects/FinPilot/apps/mobile/eas.json>):
 
@@ -141,7 +192,7 @@ Use when:
 
 - you want the Play Store package later
 
-## 7. Build an APK
+## 8. Build an APK
 
 From `apps/mobile`:
 
@@ -157,7 +208,7 @@ Why:
 - `preview` produces an APK
 - APK is directly installable on your Android phone
 
-## 8. Install the APK
+## 9. Install the APK
 
 After the build finishes:
 
@@ -170,7 +221,7 @@ If Android blocks the install:
 
 - allow installs from the browser or file manager you used
 
-## 9. Test the installed APK
+## 10. Test the installed APK
 
 Once the app is installed:
 
@@ -192,7 +243,7 @@ Minimum tests:
 10. profile image upload
 11. profile/settings
 
-## 10. Build a dev client instead
+## 11. Build a dev client instead
 
 If you want a development build instead of just an APK:
 
@@ -208,7 +259,7 @@ Use this when:
 
 For FinPilot, this is the better long-term development path.
 
-## 11. Run the dev client after install
+## 12. Run the dev client after install
 
 If you install a development build, then you run Metro separately:
 
@@ -221,7 +272,7 @@ The installed dev client app connects to Metro.
 
 That is different from the plain APK preview flow.
 
-## 12. Build for Play Store later
+## 13. Build for Play Store later
 
 When you want a Play Store package:
 
@@ -231,7 +282,7 @@ eas build --platform android --profile production
 
 That produces an Android App Bundle (`.aab`), not a directly installable APK.
 
-## 13. Important app-specific notes
+## 14. Important app-specific notes
 
 ### Deep links
 
@@ -262,7 +313,7 @@ for realistic push/device behavior.
 
 The biggest mistake before building is forgetting to switch the mobile app from local backend URLs to the Railway public URL.
 
-## 14. GitHub Actions option
+## 15. GitHub Actions option
 
 There is a manual GitHub Actions workflow:
 
@@ -282,7 +333,7 @@ For an APK, choose:
 
 - `preview`
 
-## 15. Local vs hosted backend reminder
+## 16. Local vs hosted backend reminder
 
 ### Local development
 
@@ -304,7 +355,7 @@ EXPO_PUBLIC_API_URL=https://your-service-name.up.railway.app/api/v1
 
 That is the correct setting for a real installed build.
 
-## 16. Recommended first path for FinPilot
+## 17. Recommended first path for FinPilot
 
 The cleanest sequence now is:
 
@@ -321,17 +372,18 @@ eas build --platform android --profile preview
 5. install APK on phone
 6. test end to end
 
-## 17. What not to forget
+## 18. What not to forget
 
 Before building, confirm:
 
 - `eas login` is done
+- `EXPO_PUBLIC_API_URL` exists in the correct EAS environment
 - `apps/mobile/.env` points to Railway
 - backend is actually deployed and reachable
 - the app is linked to Expo/EAS
 - you are using `preview` for APK, not `production`
 
-## 18. Quick commands
+## 19. Quick commands
 
 ### Build APK
 
@@ -354,7 +406,7 @@ cd "D:\Documents\My Projects\FinPilot\apps\mobile"
 eas build --platform android --profile production
 ```
 
-## 19. Best immediate choice
+## 20. Best immediate choice
 
 For your current goal, the best next command is:
 
